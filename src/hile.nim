@@ -58,7 +58,6 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
   if reference != nil:
     result.reference_base = reference.get(chrom, position, position + 1)[0]
   var s = ""
-  var skip_last: bool # don't append INS if preceding base was skipped.
   for aln in bam.query(chrom, position, position + 1):
     if aln.mapping_quality < cfg.MinMappingQuality: continue
     if cfg.IncludeFlags != 0 and (cfg.IncludeFlags and aln.flag.uint16) != cfg.IncludeFlags: continue
@@ -67,6 +66,7 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
     var
       r_off = aln.start
       q_off = 0
+      skip_last = false # don't append INS if preceding base was skipped.
 
     for op in aln.cigar:
       if r_off == position + 1 and not skip_last:
