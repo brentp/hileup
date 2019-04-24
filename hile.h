@@ -46,7 +46,5 @@ typedef struct {
   uint16_t n_deletions;
 } hile;
 
-void fill(hile *h, bam1_t *b, int position, config_t *cfg);
 void hile_destroy(hile *h);
-
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg);
