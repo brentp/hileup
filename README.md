@@ -23,5 +23,8 @@ print(h.read_names) # qname from the alignment in order of bases
 print(h.bqs) # base-qualities encoded as a string (subtract 33 from each char to get qual)
 print(h.deletions) # a list of tuples indicating the index in the h.bases string and the length.
 print(h.insertions)
-
 ```
+
+The `nim` implementation is fairly optimized, the C implementation still needs
+some improvement (it reallocs on every base/qual/mapping_quality thtat gets added).
+But, because it minimizes operations in python, it is quite fast (for python).
