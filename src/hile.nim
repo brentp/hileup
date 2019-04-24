@@ -94,11 +94,10 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
       if over > q_off: break
       if over < 0: continue
 
-      if aln.tid == aln.mate_tid and aln.qname in overlap_lookup:
-        overlap_lookup.excl(aln.qname)
+      if aln.tid == aln.mate_tid and overlap_lookup.len > 0 and not overlap_lookup.missingOrExcl(aln.qname):
         continue
 
-      if cfg.MinBaseQuality > 0'u8:
+      if cfg.MinBaseQuality > 0'u8 or cfg.TrackBaseQualities:
         var bq = aln.base_quality_at(q_off - over)
         if bq < cfg.MinBaseQuality:
           skip_last = true
@@ -121,12 +120,12 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
         continue
       overlap_lookup.incl(aln.qname)
 
-
 proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config): Hile =
     hileup(bam, chrom, position, reference, cfg, result)
 
 when isMainModule:
   import hts/private/hts_concat
+  #import nimprof
 
   import os
   var b:Bam
@@ -143,8 +142,8 @@ when isMainModule:
   #for i in 1584850..1586144:
   #for i in 1585268..1585280:
   # samtools mpileup -B -q 10 -Q 10 -r 1:20101-20101 --reference /data/human/g1k_v37_decoy.fa /data/human/hg002.cram
-  for i in 20099..20101:
+  for i in 20099..21099:
     var h = b.hileup("1", i, fai, cfg)
     if h.bases.len == 0: continue
     #echo h
-    echo h, h.bases.len
+    echo h.pos, " ", h.bases.len
