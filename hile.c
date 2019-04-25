@@ -42,7 +42,7 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
 	}
     }
     if(t == NULL) {
-          fprintf(stderr, "[hileup] invalid type %c%c for tag\n", t[0], t[1]);
+        fprintf(stderr, "[hileup] tag %c%c not found\n", tag[0], tag[1]);
     }
     if(!added) {
 	    if(append) {
@@ -225,7 +225,7 @@ int main() {
     cfg.track_read_names = true;
     cfg.tags[0] = 'M';
     cfg.tags[1] = 'D';
-    cfg.tags[2] = 'R';
+    cfg.tags[2] = 'F';
     cfg.tags[3] = 'G';
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
