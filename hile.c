@@ -1,5 +1,20 @@
 #include "hile.h"
 
+static inline void hile_realloc(hile *h, config_t *cfg) {
+    if(h->n < h->cap) { return; }
+    h->cap = (h->cap == 0)? 2: (2 * h->cap);
+    h->bases = realloc(h->bases, sizeof(basestrand_t) * (h->cap));
+    if(cfg->track_mapping_qualities) {
+        h->mqs = realloc(h->mqs, sizeof(uint8_t) * (h->cap));
+    }
+    if(cfg->track_base_qualities) {
+        h->bqs = realloc(h->bqs, sizeof(uint8_t) * (h->cap));
+    }
+    if(cfg->track_read_names) {
+        h->read_names = realloc(h->read_names, sizeof(char *) * (h->cap));
+    }
+}
+
 void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
@@ -10,7 +25,7 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
     bool skip_last = false;
 
     uint32_t *cig = bam_get_cigar(b);
-    for(int i=0; i < b->core.n_cigar; i++){
+    for(uint32_t i=0; i < b->core.n_cigar; i++){
         skip_last = false;
 	uint32_t element = cig[i];
 	uint32_t op = element & BAM_CIGAR_MASK;
@@ -41,36 +56,33 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
 	int over = r_off - position;
 	if(over > q_off) { break;}
 	if(over < 0) { continue; }
+	uint8_t bq = 0;
 	// TODO handle overlapping mates.
 	if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {
-	    uint8_t bq = bam_get_qual(b)[q_off - over];
+	    bq = bam_get_qual(b)[q_off - over];
 	    if (bq < cfg->min_base_quality) {
 	       skip_last = true;
 	       continue;
 	    }
-            if(cfg->track_base_qualities) {
-              // TODO: use better allocation strategy.
-              h->bqs = realloc(h->bqs, sizeof(uint8_t)*(h->n + 1));
-              h->bqs[h->n] = bq;
-            }
 	}
+	h->n++;
+	hile_realloc(h, cfg);
+        if(cfg->track_base_qualities) {
+          h->bqs[h->n-1] = bq;
+        }
 
         uint8_t *seq = bam_get_seq(b);
         int i = q_off - over;
         basestrand_t bs;
         bs.base = "=ACMGRSVTWYHKDBN"[(seq[i >> 1] >> ((~i & 1) >> 2) & 0xF)];
         bs.reverse_strand = b->core.flag & BAM_FREVERSE ? 1: 0;
-        h->bases = realloc(h->bases, sizeof(basestrand_t) * (h->n+1));
-        h->bases[h->n] = bs;
-        h->n += 1;
+        h->bases[h->n-1] = bs;
 
         if(cfg->track_read_names) {
-            h->read_names = realloc(h->read_names, sizeof(char *) * (h->n));
             h->read_names[h->n-1] = malloc(sizeof(char) * (b->core.l_qname));
             strncpy(h->read_names[h->n-1], bam_get_qname(b), sizeof(char) * (b->core.l_qname));
         }
         if(cfg->track_mapping_qualities) {
-            h->mqs = realloc(h->mqs, sizeof(uint8_t) * (h->n));
             h->mqs[h->n - 1] = b->core.qual;
         }
     }
@@ -87,11 +99,12 @@ hile *hile_init() {
   h->insertions = NULL;
   h->n_insertions = 0;
   h->bases = NULL;
-  h->n = 0;
   h->pos = 0;
+  h->n = 0;
   h->cap = 0;
   return h;
 }
+
 
 void hile_destroy(hile *h) {
     if(h == NULL) { return; }
@@ -120,7 +133,7 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
   int slen;
   bam1_t *b = bam_init1();
   hile *h = hile_init();
-  while(slen = sam_itr_next(htf, itr, b) > 0){
+  while((slen = sam_itr_next(htf, itr, b)) > 0){
      fill(h, b, position, cfg);
   }
   bam_destroy1(b);

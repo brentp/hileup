@@ -25,6 +25,7 @@ print(h.deletions) # a list of tuples indicating the index in the h.bases string
 print(h.insertions)
 ```
 
-The `nim` implementation is fairly optimized, the C implementation still needs
-some improvement (it reallocs on every base/qual/mapping_quality thtat gets added).
+The `nim` implementation is fairly optimized, the C implementation does not
+correct for read-overlaps.
+
 But, because it minimizes operations in python, it is quite fast (for python).
