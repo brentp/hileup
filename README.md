@@ -11,19 +11,27 @@ There is a version in nim, one in C, and a cython wrapper for the C in python.
 The python version, which takes a pysam AlignmentFile object looks like:
 
 ```Python
+import pysam
+import chileup
 
-from pysam import AlignmentFile
-from hileup import pileup
-# this
-samfile = AlignmentFile("tests/three.bam", "rb")
+bam = pysam.AlignmentFile("tests/three.bam", "rb")
 
-h = pileup(samfile, "1", 1585270)
-print(h.bases) # 'TTT'
-print(h.read_names) # qname from the alignment in order of bases
-print(h.bqs) # base-qualities encoded as a string (subtract 33 from each char to get qual)
-print(h.deletions) # a list of tuples indicating the index in the h.bases string and the length.
+config = chileup.Config(tags=[], track_read_names=True,
+        track_base_qualities=True, track_mapping_qualities=True,
+        min_base_quality=10, min_mapping_quality=10)
+
+h = chileup.pileup(bam, "1", 1585270, config)
+
+print(h.bases)
+print(h.read_names)
+print(h.bqs)
+print(h.deletions)
 print(h.insertions)
+print(h.tags)
 ```
+
+To run the python version, pysam must be in the same level as the checkout of hileup.
+Then run: ` python setup.py build_ext -i`
 
 The `nim` implementation is fairly optimized, the C implementation does not
 correct for read-overlaps.
