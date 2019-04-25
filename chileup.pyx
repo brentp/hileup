@@ -18,6 +18,7 @@ cdef class HileUp:
     @property
     def tags(self):
         cdef int i
+        if self.c.tags == NULL: return []
         return [self.c.tags[i] for i in range(self.c.n)]
 
     @property
