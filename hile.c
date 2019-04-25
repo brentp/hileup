@@ -13,12 +13,73 @@ static inline void hile_realloc(hile *h, config_t *cfg) {
     if(cfg->track_read_names) {
         h->read_names = realloc(h->read_names, sizeof(char *) * (h->cap));
     }
+    if(cfg->tags[0] != 0) {
+        h->tags = realloc(h->tags, sizeof(char *) * (h->cap));
+    }
 }
+
+void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
+    uint8_t *t = bam_aux_get(b, tag);
+    char *tval;
+    bool added = false;
+    if(t != NULL && (t[0] == 'H' || t[0] == 'Z' || t[0] == 'A')) {
+        if(t[0] == 'H' || t[0] == 'Z') {
+            tval = bam_aux2Z(t);
+        } else {
+            tval = bam_aux2Z(t);
+        }
+        if(tval != NULL) {
+	    added = true;
+	    if(append) {
+		int oldlen = strlen(h->tags[h->n-1]);
+		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (2 + strlen(tval) + oldlen));
+		h->tags[h->n-1][oldlen] = '/';
+		strcpy(h->tags[h->n-1] + oldlen + 1, tval);
+	    } else {
+		h->tags[h->n-1] = malloc(sizeof(char) * (1 + strlen(tval)));
+		strcpy(h->tags[h->n-1], tval);
+	    }
+	}
+    }
+    if(t == NULL) {
+          fprintf(stderr, "[hileup] invalid type %c%c for tag\n", t[0], t[1]);
+    }
+    if(!added) {
+	    if(append) {
+		int oldlen = strlen(h->tags[h->n-1]);
+		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (2 + oldlen));
+		h->tags[h->n-1][oldlen] = '/';
+		h->tags[h->n-1][oldlen+1] = '.';
+	    } else {
+		h->tags[h->n-1] = malloc(sizeof(char) * 2);
+		strcpy(h->tags[h->n-1], ".");
+	    }
+    }
+}
+
+config_t hile_init_config() {
+    config_t c;
+    c.min_mapping_quality = 10;
+    c.min_base_quality = 10;
+    c.track_read_names = false;
+    c.track_base_qualities = false;
+    c.track_mapping_qualities = false;
+    c.include_flags = 0;
+    c.exclude_flags = BAM_FDUP | BAM_FQCFAIL | BAM_FUNMAP | BAM_FSECONDARY;
+    c.tags[0] = 0;
+    c.tags[1] = 0;
+    c.tags[2] = 0;
+    c.tags[3] = 0;
+    return c;
+}
+
 
 void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
     if((cfg->exclude_flags & b->core.flag) != 0) { return; }
+    bool has_tag1 = cfg->tags[0] != 0;
+    bool has_tag2 = cfg->tags[2] != 0;
 
     int r_off = b->core.pos;
     int q_off = 0;
@@ -85,14 +146,22 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
         if(cfg->track_mapping_qualities) {
             h->mqs[h->n - 1] = b->core.qual;
         }
+	if(cfg->tags[0] != 0) {
+	   char tag[2] = {cfg->tags[0], cfg->tags[1]};
+           hile_add_tag(h, b, tag, false);
+	   if(cfg->tags[2] != 0) {
+	     tag[0] = cfg->tags[2], tag[1] = cfg->tags[3];
+             hile_add_tag(h, b, tag, true);
+	   }
+	}
     }
-
 }
 
 hile *hile_init() {
   hile *h = malloc(sizeof(hile));
   h->read_names = NULL;
   h->bqs = NULL;
+  h->tags = NULL;
   h->mqs = NULL;
   h->deletions = NULL;
   h->n_deletions = 0;
@@ -108,6 +177,12 @@ hile *hile_init() {
 
 void hile_destroy(hile *h) {
     if(h == NULL) { return; }
+    if(h->tags != NULL) {
+        for(int i=0; i < h->n; i++) {
+            free(h->tags[i]);
+        }
+        free(h->tags);
+    }
     if(h->read_names != NULL) {
         for(int i=0; i < h->n; i++) {
             free(h->read_names[i]);
@@ -146,14 +221,14 @@ int main() {
     int start = 1585270;
     bam_hdr_t *hdr = sam_hdr_read(htf);
     hts_idx_t *idx = sam_index_load(htf, "tests/three.bam");
-    config_t cfg;
-    cfg.min_mapping_quality = 10;
-    cfg.min_base_quality = 10;
-    cfg.include_flags = 0;
-    cfg.exclude_flags = BAM_FDUP | BAM_FQCFAIL | BAM_FUNMAP | BAM_FSECONDARY;
+    config_t cfg = hile_init_config();
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;
+    cfg.tags[0] = 'M';
+    cfg.tags[1] = 'D';
+    cfg.tags[2] = 'R';
+    cfg.tags[3] = 'G';
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
     for(int i=0; i < h->n; i++){
@@ -163,6 +238,12 @@ int main() {
 	    fprintf(stderr, " ");
 	    for(int i=0; i < h->n; i++){
 		fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+	    }
+    }
+    if(cfg.tags[0] != 0) {
+	    fprintf(stderr, " ");
+	    for(int i=0; i < h->n; i++){
+		fprintf(stderr, "%s ", h->tags[i]);
 	    }
     }
     fprintf(stderr, "\n");

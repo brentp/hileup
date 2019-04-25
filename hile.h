@@ -14,6 +14,7 @@ typedef struct {
   bool track_read_names;
   bool track_base_qualities;
   bool track_mapping_qualities;
+  char tags[4]; // track up to 2 tags.
 } config_t;
 
 typedef struct {
@@ -36,10 +37,11 @@ typedef struct {
   char reference_base;
   basestrand_t *bases;
   uint16_t n;
-  uint16_t cap; //TODO reduce reallocs
+  uint16_t cap;
   uint8_t *bqs;
   uint8_t *mqs;
   char **read_names;
+  char **tags;
   insertion_t *insertions;
   uint16_t n_insertions;
   deletion_t *deletions;
@@ -48,3 +50,4 @@ typedef struct {
 
 void hile_destroy(hile *h);
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg);
+config_t hile_init_config();
