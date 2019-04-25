@@ -16,6 +16,11 @@ cdef class HileUp:
         return s
 
     @property
+    def tags(self):
+        cdef int i
+        return [self.c.tags[i] for i in range(self.c.n)]
+
+    @property
     def bqs(self):
         cdef int i
         cdef char* s = <char *>malloc((self.c.n+1) * sizeof(char))
@@ -59,18 +64,39 @@ cdef class HileUp:
     def __dealloc__(self):
         hile_destroy(self.c)
 
-def pileup(AlignmentFile bam, str chrom, int position):
-    cdef config_t cfg
-    cfg.min_base_quality = 10
-    cfg.min_mapping_quality = 10
-    cfg.include_flags = 0
-    cfg.exclude_flags = 0
-    cfg.track_read_names = True
-    cfg.track_base_qualities = True
-    cfg.track_mapping_qualities = True
+cdef class Config:
+    cdef config_t c
+
+    def __init__(self, tags=(), track_read_names=True,
+            track_base_qualities=False, track_mapping_qualities=False,
+            min_base_quality=10, min_mapping_quality=10, include_flags=0,
+            exclude_flags=1796):
+        self.c = hile_init_config()
+        self.c.track_mapping_qualities = track_mapping_qualities
+        self.c.track_base_qualities = track_base_qualities
+        self.c.track_read_names = track_read_names
+        self.c.min_base_quality = min_base_quality
+        self.c.min_mapping_quality = min_mapping_quality
+        self.c.include_flags = include_flags
+        self.c.exclude_flags = exclude_flags
+
+        assert len(tags) <= 2, "must specify 2 or fewer tags"
+        for i, t in enumerate(tags):
+            assert len(t) == 2, "tags must have length 2"
+            self.c.tags[2*i] = ord(t[0])
+            self.c.tags[2*i+1] = ord(t[1])
+
+
+def pileup(AlignmentFile bam, str chrom, int position, Config cfg):
+    #cdef config_t cfg = hile_init_config()
+    #cfg.track_read_names = True
+    #cfg.tags[0] = 'M'
+    #cfg.tags[1] = 'D'
+    #cfg.track_base_qualities = True
+    #cfg.track_mapping_qualities = True
     cdef HileUp hile = HileUp()
     hile.c = hileup(bam.htsfile, bam.header.ptr, bam.index, chrom.encode(),
-            position, &cfg)
+            position, &cfg.c)
     return hile
 
 def example():

@@ -78,8 +78,6 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
     if((cfg->exclude_flags & b->core.flag) != 0) { return; }
-    bool has_tag1 = cfg->tags[0] != 0;
-    bool has_tag2 = cfg->tags[2] != 0;
 
     int r_off = b->core.pos;
     int q_off = 0;
