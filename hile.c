@@ -1,4 +1,7 @@
 #include "hile.h"
+#include "khash.h"
+
+KHASH_SET_INIT_STR(strset)
 
 static inline void hile_realloc(hile *h, config_t *cfg) {
     if(h->n < h->cap) { return; }
@@ -47,9 +50,8 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
     if(!added) {
 	    if(append) {
 		int oldlen = strlen(h->tags[h->n-1]);
-		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (2 + oldlen));
-		h->tags[h->n-1][oldlen] = '/';
-		h->tags[h->n-1][oldlen+1] = '.';
+		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (3 + oldlen));
+		strcpy(h->tags[h->n-1] + oldlen, "/.");
 	    } else {
 		h->tags[h->n-1] = malloc(sizeof(char) * 2);
 		strcpy(h->tags[h->n-1], ".");
@@ -133,8 +135,8 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
         uint8_t *seq = bam_get_seq(b);
         int i = q_off - over;
         basestrand_t bs;
-        bs.base = "=ACMGRSVTWYHKDBN"[(seq[i >> 1] >> ((~i & 1) >> 2) & 0xF)];
-        bs.reverse_strand = b->core.flag & BAM_FREVERSE ? 1: 0;
+        bs.reverse_strand = (b->core.flag & BAM_FREVERSE) ? 1: 0;
+        bs.base = "=ACMGRSVTWYHKDBN"[bam_seqi(seq, i)];
         h->bases[h->n-1] = bs;
 
         if(cfg->track_read_names) {
@@ -195,9 +197,17 @@ void hile_destroy(hile *h) {
     free(h);
 }
 
+
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg) {
   char buffer[50];
   sprintf(buffer, "%s:%d-%d", chrom, position, position + 1);
+
+  // track overlapping reads.
+  khash_t(strset) *seen;
+  seen = kh_init(strset);
+  khint_t k;
+  int absent;
+
   hts_itr_t *itr = sam_itr_querys(idx, hdr, buffer);
   if (itr == NULL) {
     fprintf(stderr, "[hileup] unable to access region %s", buffer);
@@ -206,12 +216,76 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
   int slen;
   bam1_t *b = bam_init1();
   hile *h = hile_init();
+  #define is_primary(b) (!(b->core.flag & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)))
+
   while((slen = sam_itr_next(htf, itr, b)) > 0){
+     k = kh_get(strset, seen, bam_get_qname(b));
+     if(k != kh_end(seen)){
+        free((char *)kh_key(seen, k));
+        kh_del(strset, seen, k);
+        continue;
+     }
      fill(h, b, position, cfg);
+     if(!is_primary(b) || bam_endpos(b) <= b->core.mpos || b->core.mpos > position || b->core.tid != b->core.mtid || b->core.pos > b->core.mpos){
+       continue;
+     }
+     char *qname = bam_get_qname(b);
+     k = kh_put(strset, seen, qname, &absent);
+     if (absent) { kh_key(seen, k) = strdup(qname); }
   }
+
+  for(k=0; k < kh_end(seen); ++k){
+      if(kh_exist(seen, k)) {
+          free((char *)kh_key(seen, k));
+      }
+  }
+  kh_destroy(strset, seen);
+
   bam_destroy1(b);
   hts_itr_destroy(itr);
   return h;
+}
+
+int example() {
+    htsFile *htf = hts_open("/data/human/hg002.cram", "rC");
+    int start = 20100;
+    bam_hdr_t *hdr = sam_hdr_read(htf);
+    hts_idx_t *idx = sam_index_load(htf, "/data/human/hg002.cram");
+    if(0 != hts_set_fai_filename(htf, "/data/human/g1k_v37_decoy.fa")) {
+            fprintf(stderr, "cant set fai");
+            return 2;
+    }
+    config_t cfg = hile_init_config();
+    cfg.track_base_qualities = true;
+    cfg.track_mapping_qualities = true;
+    cfg.track_read_names = true;
+    cfg.min_base_quality = 9;
+    cfg.min_mapping_quality = 9;
+
+    hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
+    fprintf(stderr, "%s:%d ", "1", start);
+    for(int i=0; i < h->n; i++){
+        fprintf(stderr, "%c", (char)h->bases[i].base);
+    }
+    if(cfg.track_mapping_qualities) {
+	    fprintf(stderr, " ");
+	    for(int i=0; i < h->n; i++){
+		fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+	    }
+    }
+    if(cfg.tags[0] != 0) {
+	    fprintf(stderr, " ");
+	    for(int i=0; i < h->n; i++){
+		fprintf(stderr, "%d:%s ", i, h->tags[i]);
+	    }
+    }
+    fprintf(stderr, "\n");
+
+    hile_destroy(h);
+    bam_hdr_destroy(hdr);
+    hts_idx_destroy(idx);
+    hts_close(htf);
+    return 0;
 }
 
 int main() {
@@ -229,6 +303,7 @@ int main() {
     cfg.tags[3] = 'G';
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
+    fprintf(stderr, "%s:%d ", "1", start);
     for(int i=0; i < h->n; i++){
         fprintf(stderr, "%c", (char)h->bases[i].base);
     }
@@ -241,7 +316,7 @@ int main() {
     if(cfg.tags[0] != 0) {
 	    fprintf(stderr, " ");
 	    for(int i=0; i < h->n; i++){
-		fprintf(stderr, "%s ", h->tags[i]);
+		fprintf(stderr, "%d:%s ", i, h->tags[i]);
 	    }
     }
     fprintf(stderr, "\n");
@@ -250,5 +325,5 @@ int main() {
     bam_hdr_destroy(hdr);
     hts_idx_destroy(idx);
     hts_close(htf);
-    return 0;
+    return example();
 }

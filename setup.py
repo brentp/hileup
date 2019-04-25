@@ -7,7 +7,7 @@ setup(
       cmdclass={'build_ext': Cython.Build.build_ext},
       ext_modules = cythonize([Extension("chileup",
                                sources=["hileup.c", "chileup.pyx"],
-                               depends=["hileup.h"],
+                               depends=["hileup.h", "khash.h"],
                                language='c',
                                libraries=["z", "hts"],
                                include_dirs=["../pysam/pysam",".",
