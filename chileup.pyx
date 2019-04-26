@@ -1,5 +1,6 @@
 # distutils: sources = hile.c
 # distutils: include_dirs = .
+
 from pysam.libcalignmentfile cimport AlignmentFile
 from libc.stdlib cimport malloc
 cimport numpy as np
@@ -47,7 +48,7 @@ cdef class HileUp:
         cdef int i
         result = []
         for i in range(0, self.c.n):
-            result.append(self.c.read_names[i])
+            result.append(self.c.read_names[i][:])
         return result
 
     @property

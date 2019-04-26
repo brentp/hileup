@@ -143,7 +143,8 @@ when isMainModule:
   #for i in 1585268..1585280:
   # samtools mpileup -B -q 10 -Q 10 -r 1:20101-20101 --reference /data/human/g1k_v37_decoy.fa /data/human/hg002.cram
   for i in 20100..20100:
+    echo i
     var h = b.hileup("1", i, fai, cfg)
-    if h.bases.len == 0: continue
     echo h
+    if h.bases.len == 0: continue
     echo h.pos, " ", h.bases.len

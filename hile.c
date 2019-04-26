@@ -111,6 +111,8 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
 	if(r_off > position){ break; }
 	if(consumes_query) { q_off += oplen; }
 	if(consumes_ref) { r_off += oplen; }
+        if(r_off < position){ continue; }
+
 
 	if(!(consumes_query && consumes_ref)){ continue; }
 
@@ -135,8 +137,8 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
         uint8_t *seq = bam_get_seq(b);
         int i = q_off - over;
         basestrand_t bs;
-        bs.reverse_strand = (b->core.flag & BAM_FREVERSE) ? 1: 0;
         bs.base = "=ACMGRSVTWYHKDBN"[bam_seqi(seq, i)];
+        bs.reverse_strand = (b->core.flag & BAM_FREVERSE) ? 1: 0;
         h->bases[h->n-1] = bs;
 
         if(cfg->track_read_names) {
@@ -200,7 +202,7 @@ void hile_destroy(hile *h) {
 
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg) {
   char buffer[50];
-  sprintf(buffer, "%s:%d-%d", chrom, position, position + 1);
+  sprintf(buffer, "%s:%d-%d", chrom, position + 1, position + 1);
 
   // track overlapping reads.
   khash_t(strset) *seen;
@@ -247,10 +249,12 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
 }
 
 int example() {
-    htsFile *htf = hts_open("/data/human/hg002.cram", "rC");
-    int start = 20100;
+    //htsFile *htf = hts_open("/data/human/hg002.cram", "rC");
+    htsFile *htf = hts_open("tests/soft.bam", "rb");
+    int start = 10080;
     bam_hdr_t *hdr = sam_hdr_read(htf);
-    hts_idx_t *idx = sam_index_load(htf, "/data/human/hg002.cram");
+    //hts_idx_t *idx = sam_index_load(htf, "/data/human/hg002.cram");
+    hts_idx_t *idx = sam_index_load(htf, "tests/soft.bam");
     if(0 != hts_set_fai_filename(htf, "/data/human/g1k_v37_decoy.fa")) {
             fprintf(stderr, "cant set fai");
             return 2;
@@ -259,8 +263,8 @@ int example() {
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;
-    cfg.min_base_quality = 9;
-    cfg.min_mapping_quality = 9;
+    cfg.min_base_quality = 10;
+    cfg.min_mapping_quality = 10;
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
     fprintf(stderr, "%s:%d ", "1", start);
@@ -289,6 +293,7 @@ int example() {
 }
 
 int main() {
+        /*
     htsFile *htf = hts_open("tests/three.bam", "rb");
     int start = 1585270;
     bam_hdr_t *hdr = sam_hdr_read(htf);
@@ -325,5 +330,6 @@ int main() {
     bam_hdr_destroy(hdr);
     hts_idx_destroy(idx);
     hts_close(htf);
+    */
     return example();
 }
