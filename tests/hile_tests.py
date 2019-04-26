@@ -20,13 +20,13 @@ def test_insertion():
     bam = pysam.AlignmentFile("tests/three.bam", "rb")
     pos = 1585270
     h = chileup.pileup(bam, "1", pos, config)
-    assert h.bases == b'TT'
+    assert h.bases == b'TT', h.bases
     assert len(h.deletions) == 2
 
 
 def main(bam, config):
 
-    for pos in range(10000, 12000):
+    for pos in range(10000, 11000):
         h = chileup.pileup(bam, "1", pos, config)
         print(pos, h.bases, len(h.bqs), len(h.deletions), len(h.insertions))
 
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     test_off_by_one()
     test_insertion()
 
-    #main(bam, config)
+    main(bam, config)

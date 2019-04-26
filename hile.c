@@ -201,8 +201,11 @@ void hile_destroy(hile *h) {
 
 
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg) {
-  char buffer[50];
-  sprintf(buffer, "%s:%d-%d", chrom, position + 1, position + 1);
+  int tid = bam_name2id(hdr, chrom);
+  if(tid == -1){
+    fprintf(stderr, "[hile] unknown chromosome %s\n", chrom);
+    return NULL;
+  }
 
   // track overlapping reads.
   khash_t(strset) *seen;
@@ -210,9 +213,9 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
   khint_t k;
   int absent;
 
-  hts_itr_t *itr = sam_itr_querys(idx, hdr, buffer);
+  hts_itr_t *itr = sam_itr_queryi(idx, tid, position, position + 1);
   if (itr == NULL) {
-    fprintf(stderr, "[hileup] unable to access region %s", buffer);
+    fprintf(stderr, "[hileup] unable to access region %s:%d", chrom, position);
     exit(1);
   }
   int slen;
