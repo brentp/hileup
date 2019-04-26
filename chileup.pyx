@@ -2,18 +2,27 @@
 # distutils: include_dirs = .
 from pysam.libcalignmentfile cimport AlignmentFile
 from libc.stdlib cimport malloc
+cimport numpy as np
+import numpy as np
+cdef dt = np.dtype([('index', np.uint16, 1), ('len', np.uint32, 1)])
 
 cdef class HileUp:
     cdef hile *c
 
     @property
-    def bases(self):
+    def bases(HileUp self):
         cdef int i
         cdef char* s = <char *>malloc((self.c.n+1) * sizeof(char))
         for i in range(0, self.c.n):
+            #if show_strand and self.c.bases[i].reverse_strand == 1:
+            #  s[i] = self.c.bases[i].base + 32
+            #else:
             s[i] = self.c.bases[i].base
         s[self.c.n] = 0
-        return s
+        pys = s[:self.c.n]
+        free(s)
+        return pys
+
 
     @property
     def tags(self):
@@ -23,15 +32,18 @@ cdef class HileUp:
 
     @property
     def bqs(self):
-        cdef int i
-        cdef char* s = <char *>malloc((self.c.n+1) * sizeof(char))
-        for i in range(0, self.c.n):
-            s[i] = (self.c.bqs[i] + 33)
-        s[self.c.n] = 0
-        return s
+        if self.c.bqs == NULL: return []
+        return np.asarray(<np.uint8_t[:self.c.n]>self.c.bqs, dtype=np.uint8)
+
+    @property
+    def mqs(self):
+        if self.c.mqs == NULL: return []
+        return np.asarray(<np.uint8_t[:self.c.n]>self.c.mqs, dtype=np.uint8)
 
     @property
     def read_names(self):
+        if self.c.read_names == NULL: return []
+
         cdef int i
         result = []
         for i in range(0, self.c.n):
@@ -40,23 +52,13 @@ cdef class HileUp:
 
     @property
     def deletions(self):
-        cdef int i
-        cdef deletion_t ii
-        result = []
-        for i in range(0, self.c.n_deletions):
-            ii = self.c.deletions[i]
-            result.append((ii.index, ii.length))
-        return result
+        if self.c.n_deletions == 0: return []
+        return np.asarray(<deletion_t[:self.c.n_deletions]>self.c.deletions, dtype=dt)
 
     @property
     def insertions(self):
-        cdef int i
-        cdef insertion_t ii
-        result = []
-        for i in range(0, self.c.n_insertions):
-            ii = self.c.insertions[i]
-            result.append((ii.index, ii.length))
-        return result
+        if self.c.n_insertions == 0: return []
+        return np.asarray(<insertion_t[:self.c.n_insertions]>self.c.insertions, dtype=dt)
 
     @property
     def size(self):
@@ -89,12 +91,6 @@ cdef class Config:
 
 
 def pileup(AlignmentFile bam, str chrom, int position, Config cfg):
-    #cdef config_t cfg = hile_init_config()
-    #cfg.track_read_names = True
-    #cfg.tags[0] = 'M'
-    #cfg.tags[1] = 'D'
-    #cfg.track_base_qualities = True
-    #cfg.track_mapping_qualities = True
     cdef HileUp hile = HileUp()
     hile.c = hileup(bam.htsfile, bam.header.ptr, bam.index, chrom.encode(),
             position, &cfg.c)

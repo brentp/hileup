@@ -18,19 +18,19 @@ bam = pysam.AlignmentFile("tests/three.bam", "rb")
 
 config = chileup.Config(tags=[], track_read_names=True,
         track_base_qualities=True, track_mapping_qualities=True,
+        exclude_flags=pysam.FQCFAIL | pysam.FSECONDARY | pysam.FSUPPLEMENTARY | pysam.FDUP,
         min_base_quality=10, min_mapping_quality=10)
+
 
 h = chileup.pileup(bam, "1", 1585270, config)
 
-print(h.bases) # b'TTT'
-
-print(h.read_names) # [b'A00227:74:HCWC7DSXX:1:1243:6686:33301', b'A00227:74:HCWC7DSXX:1:1269:13449:13855', b'A00227:74:HCWC7DSXX:1:2426:7157:15483']
-print(h.bqs) # b'FFF'
-# deletions and insertions are tuples of index, length. so here, all three bases are followed by an 8 base deletion.
-print(h.deletions) # [(0, 8), (1, 8), (2, 8)]
-print(h.insertions) # []
-# tags are empty here, but would contain e.g. the cell barcodes corresponding to each base in `h.bases`
-print(h.tags) # []
+print(h.bases)
+print(h.read_names)
+print(h.bqs)
+print(h.mqs)
+print(h.deletions)
+print(h.insertions)
+print(h.tags)
 ```
 
 To build `python setup.py build_ext -i`
