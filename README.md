@@ -24,16 +24,18 @@ config = chileup.Config(tags=[], track_read_names=True,
 
 h = chileup.pileup(bam, "1", 1585270, config)
 
-print(h.bases)
-print(h.read_names)
-print(h.bqs)
-print(h.mqs)
-print(h.deletions)
-print(h.insertions)
-print(h.tags)
+print(h.bases) # 'TT'
+print(h.read_names) # [b'A00227:74:HCWC7DSXX:1:1269:13449:13855', b'A00227:74:HCWC7DSXX:1:2426:7157:15483']
+print(h.bqs) # [37, 37]  numpy array that is a view into underlying data.
+print(h.mqs) # [60, 60] numpy view.
+print(h.deletions) # [(0, 8) (1, 8)] numpy view
+print(h.insertions) # numpy view
+print(h.tags) # copy.
 ```
 
 To build `python setup.py build_ext -i`
 To install `python setup.py install`
 
 Because it minimizes operations in python, it is quite fast (for python).
+
+**NOTE** that currently the strand information is unavailable from python.
