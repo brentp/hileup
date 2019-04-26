@@ -29,6 +29,7 @@ def main(bam, config):
     for pos in range(10000, 11000):
         h = chileup.pileup(bam, "1", pos, config)
         print(pos, h.bases, len(h.bqs), len(h.deletions), len(h.insertions))
+        print(h.rbp(h))
 
 if __name__ == "__main__":
     bam = pysam.AlignmentFile("/data/human/hg002.cram", "rc",

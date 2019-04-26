@@ -10,11 +10,15 @@ cdef dt = np.dtype([('index', np.uint16, 1), ('len', np.uint32, 1)])
 cdef class HileUp:
     cdef hile *c
 
+    #@property
+    #def reference_base(self):
+    #    return chr(self.c.reference_base)
+
     @property
     def bases(HileUp self):
         cdef int i
         cdef char* s = <char *>malloc((self.c.n+1) * sizeof(char))
-        for i in range(0, self.c.n):
+        for i in range(self.c.n):
             #if show_strand and self.c.bases[i].reverse_strand == 1:
             #  s[i] = self.c.bases[i].base + 32
             #else:
@@ -24,6 +28,19 @@ cdef class HileUp:
         free(s)
         return pys
 
+    def rbp(HileUp self, HileUp other):
+        cdef dict self_lookup = {}
+        cdef int i
+        for i in range(self.c.n):
+            self_lookup[self.c.read_names[i]] = chr(self.c.bases[i].base)
+        result = {}
+        for i in range(other.c.n):
+            if other.c.read_names[i] not in self_lookup:
+                continue
+            key = self_lookup[other.c.read_names[i]] + chr(other.c.bases[i].base)
+            if not key in result: result[key] = 0
+            result[key] += 1
+        return result
 
     @property
     def tags(self):
