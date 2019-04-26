@@ -2,4 +2,6 @@
 src/hile
 build/
 dist/
+*__pycache__
 *.so
+a.out
