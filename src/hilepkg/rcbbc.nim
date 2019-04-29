@@ -32,10 +32,17 @@ iterator gen_start_ends(c: Cigar, ipos: int): pair {.inline.} =
     if last.stop != -1:
       yield last
 
+proc output(bed:TableRef[string, Lapper[region]], order: seq[string]) =
+  for chrom in order:
+    for reg in bed[chrom]:
+      for bc, cnt in reg.barcodes:
+        echo &"{chrom}\t{reg.start}\t{reg.stop}\t{bc}\t{cnt}"
+
 proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint16, min_mapping_quality: uint8) =
 
   var last_tid = -1
   var last_tree: Lapper[region]
+  var order: seq[string]
 
   for aln in ibam:
     if aln.mapping_quality < min_mapping_quality: continue
@@ -43,7 +50,8 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint
 
     if aln.tid != last_tid:
       try:
-        last_tree = bed[stripChr(aln.chrom)]
+        last_tree = bed[aln.chrom]
+        order.add(aln.chrom)
       except KeyError:
         stderr.write_line &"[rcbbc] chromosome {aln.chrom} not found in intervals in bed file"
         last_tid = aln.tid
@@ -57,7 +65,10 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint
       continue
 
     for p in gen_start_ends(aln.cigar, aln.start):
-      last_tree.each_seek(p.start, p.stop, proc(r:region) = r.barcodes.inc(bc.get))
+      last_tree.each_seek(p.start, p.stop, proc(r:region) = r.barcodes.inc($bc.get))
+
+  bed.output(order)
+
 
 proc main() =
 

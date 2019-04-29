@@ -9,11 +9,8 @@ type
     chrom: string
     start: int
     stop: int
-    barcodes: CountTable[cstring]
+    barcodes: CountTable[string]
     name: string
-
-template stripChr[T:string|cstring](s:T): string =
-  if s.len > 3 and ($s).startswith("chr"): ($s)[3..<s.len] else: $s
 
 proc start(r: region): int {.inline.} = r.start
 proc stop(r: region): int {.inline.} = r.stop
@@ -27,8 +24,8 @@ proc bed_line_to_region(line: string): region =
   result = region()
   result.start = parse_int(cse[1])
   result.stop = parse_int(cse[2])
-  result.chrom = stripChr(cse[0])
-  result.barcodes = initCountTable[cstring]()
+  result.chrom = cse[0]
+  result.barcodes = initCountTable[string]()
   if len(cse) > 3:
     result.name = cse[3]
 
