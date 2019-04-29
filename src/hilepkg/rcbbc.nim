@@ -32,13 +32,31 @@ iterator gen_start_ends(c: Cigar, ipos: int): pair {.inline.} =
     if last.stop != -1:
       yield last
 
-proc output(bed:TableRef[string, Lapper[region]], order: seq[string]) =
+proc output_wide(bed:TableRef[string, Lapper[region]], order: seq[string]) =
+  var bcs_order = newSeqOfCap[string](8192)
   for chrom in order:
     for reg in bed[chrom]:
       for bc, cnt in reg.barcodes:
-        echo &"{chrom}\t{reg.start}\t{reg.stop}\t{bc}\t{cnt}"
+        bcs_order.add(bc)
+  sort(bcs_order)
+  echo &"""#chrom\tstart\tstop\t{join(bcs_order, "\t")}"""
+  var counts = newSeq[string](bcs_order.len)
+  for chrom in order:
+    for reg in bed[chrom]:
+      for i, bc in bcs_order:
+        counts[i] = $reg.barcodes.getOrDefault(bc, 0)
+      echo &"""{chrom}\t{reg.start}\t{reg.stop}\t{join(counts, "\t")}"""
 
-proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint16, min_mapping_quality: uint8) =
+proc output(bed:TableRef[string, Lapper[region]], order: seq[string], wide: bool) =
+  if wide:
+    output_wide(bed, order)
+  else:
+    for chrom in order:
+      for reg in bed[chrom]:
+        for bc, cnt in reg.barcodes:
+          echo &"{chrom}\t{reg.start}\t{reg.stop}\t{bc}\t{cnt}"
+
+proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint16, min_mapping_quality: uint8, wide:bool) =
 
   var last_tid = -1
   var last_tree: Lapper[region]
@@ -67,7 +85,7 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint
     for p in gen_start_ends(aln.cigar, aln.start):
       last_tree.each_seek(p.start, p.stop, proc(r:region) = r.barcodes.inc($bc.get))
 
-  bed.output(order)
+  bed.output(order, wide)
 
 
 proc main() =
@@ -77,7 +95,7 @@ proc main() =
     option("-e", "--exclude", help="exclude alignments with any of these bits set", default="1796")
     option("-m", "--min-mapping-quality", help="exclude alignments with a mapping-quality below this", default="1")
     option("-t", "--tag", default="CB", help="tag on which to partigion read-counts")
-    flag("-w", "--wide", help="output counts in wide form (1 column per barcode) default is long form")
+    flag("-w", "--wide", help="output counts in wide form (1 column per barcode) default is long form as this is usually sparse.")
     arg("bed")
     arg("bam")
 
@@ -93,7 +111,7 @@ proc main() =
     quit "[rcbbc] couldn't open bam file:" & opts.bam
 
 
-  ibam.rcbbc(bed, parseInt(opts.exclude).uint16, parseInt(opts.min_mapping_quality).uint8)
+  ibam.rcbbc(bed, parseInt(opts.exclude).uint16, parseInt(opts.min_mapping_quality).uint8, opts.wide)
 
 
 when isMainModule:
