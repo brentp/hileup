@@ -56,13 +56,18 @@ proc output(bed:TableRef[string, Lapper[region]], order: seq[string], wide: bool
         for bc, cnt in reg.barcodes:
           echo &"{chrom}\t{reg.start}\t{reg.stop}\t{bc}\t{cnt}"
 
-proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint16, min_mapping_quality: uint8, wide:bool) =
+proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], tagid: string, exclude_flags: uint16, min_mapping_quality: uint8, wide:bool) =
 
   var last_tid = -1
   var last_tree: Lapper[region]
   var order: seq[string]
+  doAssert tagid.len == 2
+  var total = 0
+  var notag = 0
+  var added = 0
 
   for aln in ibam:
+    total.inc
     if aln.mapping_quality < min_mapping_quality: continue
     if (aln.flag and exclude_flags) != 0: continue
 
@@ -78,12 +83,19 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], exclude_flags: uint
 
       last_tid = aln.tid
 
-    var bc = tag[cstring](aln, "CB")
+    var bc = tag[cstring](aln, tagid)
+    var btag: string
     if bc.isNone:
-      continue
+      btag = "notag"
+      notag += 1
+    else:
+      btag = $bc.get
 
     for p in gen_start_ends(aln.cigar, aln.start):
-      last_tree.each_seek(p.start, p.stop, proc(r:region) = r.barcodes.inc($bc.get))
+      last_tree.each_seek(p.start, p.stop, proc(r:region) = r.barcodes.inc(btag))
+    added.inc
+
+  stderr.write_line(&"[rcbbc] added {added} alignments out of {total}; of those {notag} had not tag for {tagid}")
 
   bed.output(order, wide)
 
@@ -109,9 +121,12 @@ proc main() =
   var ibam: Bam
   if not open(ibam, opts.bam, fai=fai_path, threads=2):
     quit "[rcbbc] couldn't open bam file:" & opts.bam
+  if opts.tag.len != 2:
+    echo p.help()
+    stderr.write_line "[rcbbc] tag but be of length 2"
 
 
-  ibam.rcbbc(bed, parseInt(opts.exclude).uint16, parseInt(opts.min_mapping_quality).uint8, opts.wide)
+  ibam.rcbbc(bed, opts.tag, parseInt(opts.exclude).uint16, parseInt(opts.min_mapping_quality).uint8, opts.wide)
 
 
 when isMainModule:
