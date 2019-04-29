@@ -103,6 +103,7 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], tagid: string, excl
 proc main() =
 
   var p = newParser("rcbbc"):
+    help("read-count by barcode")
     option("-f", "--fasta", help="path to fasta. required only for CRAM")
     option("-e", "--exclude", help="exclude alignments with any of these bits set", default="1796")
     option("-m", "--min-mapping-quality", help="exclude alignments with a mapping-quality below this", default="1")
@@ -112,10 +113,11 @@ proc main() =
     arg("bam")
 
   var opts = p.parse()
+  if opts.help:
+    quit 2
   var fai_path : cstring = nil
   if opts.fasta != "":
     fai_path = opts.fasta.cstring
-
 
   var bed = read_bed(opts.bed)
   var ibam: Bam
@@ -123,8 +125,7 @@ proc main() =
     quit "[rcbbc] couldn't open bam file:" & opts.bam
   if opts.tag.len != 2:
     echo p.help()
-    stderr.write_line "[rcbbc] tag but be of length 2"
-
+    quit "[rcbbc] tag must be length 2"
 
   ibam.rcbbc(bed, opts.tag, parseInt(opts.exclude).uint16, parseInt(opts.min_mapping_quality).uint8, opts.wide)
 
