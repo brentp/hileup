@@ -2,6 +2,7 @@ import hts
 import tables
 import algorithm
 import strutils
+import strformat
 import lapper
 
 type
@@ -28,6 +29,10 @@ proc bed_line_to_region(line: string): region =
   result.barcodes = initCountTable[string]()
   if len(cse) > 3:
     result.name = cse[3]
+
+proc id(r:region): string =
+  if r.name.len != 0: return r.name
+  return &"{r.chrom}_{r.start}_{r.stop}"
 
 proc read_bed(bed: string): TableRef[string, Lapper[region]] =
   var bed_regions = newTable[string, seq[region]]()

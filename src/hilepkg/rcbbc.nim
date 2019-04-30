@@ -195,12 +195,12 @@ proc main() =
     arg("bam")
 
   try:
-    var opts = p.parse()
-    if opts.help:
+    if p.parse().help:
       quit 0
   except UsageError:
-    #echo p.help
+    echo p.help
     quit 2
+
   var opts = p.parse()
   if opts.help:
     quit 0
