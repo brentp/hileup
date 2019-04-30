@@ -45,6 +45,54 @@ proc output(bed:TableRef[string, Lapper[region]], order: seq[string], output_pre
         discard bgz.write_interval(&"{chrom}\t{reg.start}\t{reg.stop}\t{bc}\t{cnt}", chrom, reg.start, reg.stop)
   discard bgz.close()
 
+proc output_sparse(bed:TableRef[string, Lapper[region]], order: seq[string], white_list: OrderedSet[string], output_prefix: string) =
+  var out_path = output_prefix & ".mtx"
+  var fh: File
+  if not open(fh, out_path, fmWrite):
+    quit "couldn't open sparse file:" & out_path
+
+  var fhcells: File
+  if not open(fhcells, out_path & ".cells", fmWrite):
+    quit "couldn't open sparse cells label file:" & out_path & ".cells"
+
+  var fhsites: File
+  if not open(fhsites, out_path & ".sites", fmWrite):
+    quit "couldn't open sparse cells sites file:" & out_path & ".sites"
+
+  var sites_order = initTable[string, int](8192)
+  var cells_order = initTable[string, int](8192)
+  if white_list.len > 0:
+    for bc in white_list:
+      cells_order[bc] = cells_order.len
+      fhcells.write_line bc
+
+  var nsites = 0
+  var nvalues = 0
+  for chrom in order:
+    nsites += bed[chrom].len
+    for reg in bed[chrom]:
+      if not sites_order.hasKeyOrPut(reg.id, sites_order.len):
+        fhsites.write_line reg.id
+      nvalues.inc(reg.barcodes.len)
+      for bc, cnt in reg.barcodes:
+        if white_list.len == 0 and not cells_order.hasKeyOrPut(bc, cells_order.len):
+          fhcells.write_line bc
+
+  fh.write("%%MatrixMarket matrix coordinate integer general\n")
+  fh.write(&"{nsites} {cells_order.len} {nvalues}\n")
+  for chrom in order:
+    for reg in bed[chrom]:
+      for bc, cnt in reg.barcodes:
+        fh.write(&"{sites_order[reg.id]+1} {cells_order[bc]+1} {cnt}\n")
+
+  fh.close()
+  stderr.write_line &"[rcbbc] wrote a {sites_order.len}x{cells_order.len} sparse matrix to {out_path} with {out_path}.sites and {out_path}.cells for row and column labels"
+  stderr.write_line &"""[rcbbc] read this in R with: library(Matrix); m = readMM("{out_path}"); rownames(m)=readLines("{out_path}.sites"); colnames(m)=readLines("{out_path}.cells")"""
+  stderr.write_line &"""[rcbbc] read this in python with: from scipy import io as sio; import pandas as pd; A = sio.mmread("{out_path}"); df = pd.DataFrame(A.toarray(), index=[l.strip() for l in open("{out_path}.sites")], columns=[l.strip() for l in open("{out_path}.cells")])"""
+  fhsites.close()
+  fhcells.close()
+
+
 proc output_qc(bed: TableRef[string, Lapper[region]], output_prefix: string, counts_by_bc_total: CountTable[string], counts_by_bc_target: CountTable[string]) =
   # columns are:
   # 1. cell-barcode
@@ -64,7 +112,7 @@ proc output_qc(bed: TableRef[string, Lapper[region]], output_prefix: string, cou
     fh.write(&"{bc}\t{tot}\t{ont}\t{ont.float / tot.float:.3f}\n")
   fh.close()
 
-proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], white_list: HashSet[string], tagid: string, exclude_flags: uint16, min_mapping_quality: uint8, output_prefix:string) =
+proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], white_list: OrderedSet[string], tagid: string, exclude_flags: uint16, min_mapping_quality: uint8, output_prefix:string) =
 
   var last_tid = -1
   var last_tree: Lapper[region]
@@ -78,6 +126,7 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], white_list: HashSet
 
   var counts_by_bc_total = initCountTable[string](8192)
   var counts_by_bc_target = initCountTable[string](8192)
+  var reported = false
 
 
   for aln in ibam:
@@ -90,7 +139,9 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], white_list: HashSet
         last_tree = bed[aln.chrom]
         order.add(aln.chrom)
       except KeyError:
-        stderr.write_line &"[rcbbc] chromosome {aln.chrom} not found in intervals in bed file"
+        if not reported:
+          stderr.write_line &"[rcbbc] chromosome {aln.chrom} not found in intervals in bed file (this is the last warning related to missing chroms)"
+          reported = true
         last_tid = aln.tid
         var x:seq[region]
         last_tree = lapify(x)
@@ -122,10 +173,10 @@ proc rcbbc(ibam: Bam, bed: TableRef[string, Lapper[region]], white_list: HashSet
 
   bed.output(order, output_prefix)
   bed.output_qc(output_prefix, counts_by_bc_total, counts_by_bc_target)
+  bed.output_sparse(order, white_list, output_prefix)
 
-
-proc read_white_list(path: string): HashSet[string] =
-  result = initHashSet[string](8192)
+proc read_white_list(path: string): OrderedSet[string] =
+  result = initOrderedSet[string](8192)
   if path == "": return
   for l in path.lines:
     result.incl(l.strip())
@@ -144,13 +195,15 @@ proc main() =
     arg("bam")
 
   try:
-    discard p.parse()
+    var opts = p.parse()
+    if opts.help:
+      quit 0
   except UsageError:
-    echo p.help
+    #echo p.help
     quit 2
   var opts = p.parse()
   if opts.help:
-    quit 2
+    quit 0
   var fai_path : cstring = nil
   if opts.fasta != "":
     fai_path = opts.fasta.cstring
