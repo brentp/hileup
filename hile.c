@@ -120,7 +120,6 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
 	if(over > q_off) { break;}
 	if(over < 0) { continue; }
 	uint8_t bq = 0;
-	// TODO handle overlapping mates.
 	if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {
 	    bq = bam_get_qual(b)[q_off - over];
 	    if (bq < cfg->min_base_quality) {

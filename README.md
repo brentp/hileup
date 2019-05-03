@@ -8,6 +8,9 @@ It is currently targetted for accessing targetted sites (e.g. < 100K sites), rat
 than sweeping across every site in the genome.
 
 There is a version in nim, one in C, and a cython wrapper for the C in python.
+
+## Python
+
 The python version, which takes a pysam AlignmentFile object looks like:
 
 ```Python
@@ -39,3 +42,54 @@ To install `python setup.py install`
 Because it minimizes operations in python, it is quite fast (for python).
 
 **NOTE** that currently the strand information is unavailable from python.
+
+
+## C
+
+The C version should be transparent to anyone familier with [htslib](https://github.com/samtools/htslib)
+The signature is:
+
+```C
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg);
+```
+
+where `hile_config_t` is a simple struct that indicates min-mapping and base-qualities and whether to
+track read-names, base-qualities, etc.
+
+
+```C
+    htsFile *htf = hts_open("tests/three.bam", "rb");
+    int start = 1585270;
+    bam_hdr_t *hdr = sam_hdr_read(htf);
+    hts_idx_t *idx = sam_index_load(htf, "tests/three.bam");
+    hile_config_t cfg = hile_init_config();
+    cfg.track_base_qualities = true;
+    cfg.track_mapping_qualities = true;
+    cfg.track_read_names = true;
+    cfg.tags[0] = 'C';
+    cfg.tags[1] = 'B';
+
+    hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
+    fprintf(stderr, "%s:%d ", "1", start);
+    for(int i=0; i < h->n; i++){
+        fprintf(stderr, "%c", (char)h->bases[i].base);
+    }
+    if(cfg.track_mapping_qualities) {
+            fprintf(stderr, " ");
+            for(int i=0; i < h->n; i++){
+                fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+            }
+    }
+    if(cfg.tags[0] != 0) {
+            fprintf(stderr, " ");
+            for(int i=0; i < h->n; i++){
+                fprintf(stderr, "%d:%s ", i, h->tags[i]);
+            }
+    }
+    fprintf(stderr, "\n");
+
+    hile_destroy(h);
+    bam_hdr_destroy(hdr);
+    hts_idx_destroy(idx);
+    hts_close(htf);
+```
