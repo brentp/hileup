@@ -3,10 +3,10 @@
 
 KHASH_SET_INIT_STR(strset)
 
-static inline void hile_realloc(hile *h, config_t *cfg) {
+static inline void hile_realloc(hile *h, hile_config_t *cfg) {
     if(h->n < h->cap) { return; }
     h->cap = (h->cap == 0)? 2: (2 * h->cap);
-    h->bases = realloc(h->bases, sizeof(basestrand_t) * (h->cap));
+    h->bases = realloc(h->bases, sizeof(hile_basestrand_t) * (h->cap));
     if(cfg->track_mapping_qualities) {
         h->mqs = realloc(h->mqs, sizeof(uint8_t) * (h->cap));
     }
@@ -59,8 +59,8 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
     }
 }
 
-config_t hile_init_config() {
-    config_t c;
+hile_config_t hile_init_config() {
+    hile_config_t c;
     c.min_mapping_quality = 10;
     c.min_base_quality = 10;
     c.track_read_names = false;
@@ -76,7 +76,7 @@ config_t hile_init_config() {
 }
 
 
-void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
+void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
     if((cfg->exclude_flags & b->core.flag) != 0) { return; }
@@ -96,12 +96,12 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
         // insertions and deletions get assinged to previous entry.
         if(r_off == position + 1 && !skip_last) {
             if(op == BAM_CDEL) {
-              h->deletions = realloc(h->deletions, sizeof(deletion_t) * (h->n_deletions+1));
+              h->deletions = realloc(h->deletions, sizeof(hile_deletion_t) * (h->n_deletions+1));
               h->deletions[h->n_deletions].index = h->n - 1;
               h->deletions[h->n_deletions].length = oplen;
               h->n_deletions++;
             } else if (op == BAM_CINS) {
-              h->insertions = realloc(h->insertions, sizeof(insertion_t) * (h->n_insertions+1));
+              h->insertions = realloc(h->insertions, sizeof(hile_insertion_t) * (h->n_insertions+1));
               h->insertions[h->n_insertions].index = h->n-1;
               h->insertions[h->n_insertions].length = oplen;
               h->n_insertions++;
@@ -136,7 +136,7 @@ void fill(hile *h, bam1_t *b, int position, config_t *cfg) {
 
         uint8_t *seq = bam_get_seq(b);
         int i = q_off - over;
-        basestrand_t bs;
+        hile_basestrand_t bs;
         bs.base = "=ACMGRSVTWYHKDBN"[bam_seqi(seq, i)];
         bs.reverse_strand = (b->core.flag & BAM_FREVERSE) ? 1: 0;
         h->bases[h->n-1] = bs;
@@ -200,7 +200,7 @@ void hile_destroy(hile *h) {
 }
 
 
-hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg) {
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg) {
   int tid = bam_name2id(hdr, chrom);
   if(tid == -1){
     fprintf(stderr, "[hile] unknown chromosome %s\n", chrom);
@@ -262,7 +262,7 @@ int example() {
             fprintf(stderr, "cant set fai");
             return 2;
     }
-    config_t cfg = hile_init_config();
+    hile_config_t cfg = hile_init_config();
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;
@@ -301,7 +301,7 @@ int main() {
     int start = 1585270;
     bam_hdr_t *hdr = sam_hdr_read(htf);
     hts_idx_t *idx = sam_index_load(htf, "tests/three.bam");
-    config_t cfg = hile_init_config();
+    hile_config_t cfg = hile_init_config();
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;

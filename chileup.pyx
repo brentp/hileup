@@ -71,12 +71,12 @@ cdef class HileUp:
     @property
     def deletions(self):
         if self.c.n_deletions == 0: return []
-        return np.asarray(<deletion_t[:self.c.n_deletions]>self.c.deletions, dtype=dt)
+        return np.asarray(<hile_deletion_t[:self.c.n_deletions]>self.c.deletions, dtype=dt)
 
     @property
     def insertions(self):
         if self.c.n_insertions == 0: return []
-        return np.asarray(<insertion_t[:self.c.n_insertions]>self.c.insertions, dtype=dt)
+        return np.asarray(<hile_insertion_t[:self.c.n_insertions]>self.c.insertions, dtype=dt)
 
     @property
     def size(self):
@@ -86,7 +86,7 @@ cdef class HileUp:
         hile_destroy(self.c)
 
 cdef class Config:
-    cdef config_t c
+    cdef hile_config_t c
 
     def __init__(self, tags=(), track_read_names=True,
             track_base_qualities=False, track_mapping_qualities=False,

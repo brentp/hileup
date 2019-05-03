@@ -6,6 +6,10 @@
 #include "string.h"
 #include "stdbool.h"
 
+/*
+ * config_t determines which reads and bases are added to the
+ * pileup. It should be created with `hile_init_config`
+*/
 typedef struct {
   uint8_t min_mapping_quality;
   uint8_t min_base_quality;
@@ -15,39 +19,65 @@ typedef struct {
   bool track_base_qualities;
   bool track_mapping_qualities;
   char tags[4]; // track up to 2 tags.
-} config_t;
+} hile_config_t;
 
+/*
+ * hile_deletion_t holds the length of the event.
+ * the `index` allows lookup into the hile struct
+ * bases,read_names,etc that this event follows.
+ */
 typedef struct {
   uint16_t index;
   uint32_t length;
-} deletion_t;
+} hile_deletion_t;
 
+/*
+ * hile_insertion_t holds the length of the event.
+ * the `index` allows lookup into the hile struct
+ * bases,read_names,etc that this event follows.
+ */
 typedef struct {
   uint16_t index;
   //char *sequence;
   uint32_t length;
-} insertion_t;
+} hile_insertion_t;
 
+/*
+ * hile_basestrand_t holds the base (A/C/G/T) and
+ * the strand in a single uint8
+ */
 typedef struct {
   uint8_t reverse_strand:1, base: 7;
-} basestrand_t;
+} hile_basestrand_t;
 
+/*
+ * hile tracks the "pileup at a single
+ * genomic location
+ */
 typedef struct {
   uint32_t pos;
   char reference_base;
-  basestrand_t *bases;
+  hile_basestrand_t *bases;
   uint16_t n;
   uint16_t cap;
   uint8_t *bqs;
   uint8_t *mqs;
   char **read_names;
   char **tags;
-  insertion_t *insertions;
+  hile_insertion_t *insertions;
   uint16_t n_insertions;
-  deletion_t *deletions;
+  hile_deletion_t *deletions;
   uint16_t n_deletions;
 } hile;
 
+
+/*
+ * create a hile for the given genomic position and config
+ * the user is responsible for freeing the returned hile
+ * using `hile_destroy`
+ */
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg);
+/* free all memory from the given hile struct */
 void hile_destroy(hile *h);
-hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, config_t *cfg);
-config_t hile_init_config();
+/* initialize a config struct with sane defaults */
+hile_config_t hile_init_config();
