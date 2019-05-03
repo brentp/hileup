@@ -66,6 +66,7 @@ track read-names, base-qualities, etc.
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;
+    // track the cell-barcode so we can get per-cell pileup!!
     cfg.tags[0] = 'C';
     cfg.tags[1] = 'B';
 
