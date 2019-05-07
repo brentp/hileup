@@ -26,7 +26,7 @@ proc bed_line_to_region(line: string): region =
   result.start = parse_int(cse[1])
   result.stop = parse_int(cse[2])
   result.chrom = cse[0]
-  result.barcodes = initCountTable[string]()
+  result.barcodes = initCountTable[string](2)
   if len(cse) > 3:
     result.name = cse[3]
 
