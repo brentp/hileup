@@ -15,10 +15,10 @@ setup(
       ext_modules = cythonize([Extension("chileup",
                                sources=["hile.c", "chileup.pyx"],
                                depends=["hile.h", "khash.h"],
-                               language='c',
+                               language="c",
                                libraries=["z", "hts"],
                                #define_macros=[('CYTHON_TRACE', '1')],
-                               extra_compile_args=['-std=c99'],
+                               #extra_compile_args=['-std=c99'],
                                include_dirs=["."] + pysam.get_include(),
                                )])
 )

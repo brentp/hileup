@@ -86,7 +86,8 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     bool skip_last = false;
 
     uint32_t *cig = bam_get_cigar(b);
-    for(uint32_t i=0; i < b->core.n_cigar; i++){
+    uint32_t i;
+    for(i=0; i < b->core.n_cigar; i++){
         skip_last = false;
 	uint32_t element = cig[i];
 	uint32_t op = element & BAM_CIGAR_MASK;
@@ -178,14 +179,15 @@ hile *hile_init(void) {
 
 void hile_destroy(hile *h) {
     if(h == NULL) { return; }
+    int i;
     if(h->tags != NULL) {
-        for(int i=0; i < h->n; i++) {
+        for(i=0; i < h->n; i++) {
             free(h->tags[i]);
         }
         free(h->tags);
     }
     if(h->read_names != NULL) {
-        for(int i=0; i < h->n; i++) {
+        for(i=0; i < h->n; i++) {
             free(h->read_names[i]);
         }
         free(h->read_names);
@@ -270,18 +272,19 @@ int example(void) {
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
     fprintf(stderr, "%s:%d ", "1", start);
-    for(int i=0; i < h->n; i++){
+    int i;
+    for(i=0; i < h->n; i++){
         fprintf(stderr, "%c", (char)h->bases[i].base);
     }
     if(cfg.track_mapping_qualities) {
 	    fprintf(stderr, " ");
-	    for(int i=0; i < h->n; i++){
+	    for(i=0; i < h->n; i++){
 		fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
 	    }
     }
     if(cfg.tags[0] != 0) {
 	    fprintf(stderr, " ");
-	    for(int i=0; i < h->n; i++){
+	    for(i=0; i < h->n; i++){
 		fprintf(stderr, "%d:%s ", i, h->tags[i]);
 	    }
     }
