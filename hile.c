@@ -59,7 +59,7 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
     }
 }
 
-hile_config_t hile_init_config() {
+hile_config_t hile_init_config(void) {
     hile_config_t c;
     c.min_mapping_quality = 10;
     c.min_base_quality = 10;
@@ -158,7 +158,7 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     }
 }
 
-hile *hile_init() {
+hile *hile_init(void) {
   hile *h = malloc(sizeof(hile));
   h->read_names = NULL;
   h->bqs = NULL;
@@ -250,7 +250,7 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
   return h;
 }
 
-int example() {
+int example(void) {
     //htsFile *htf = hts_open("/data/human/hg002.cram", "rC");
     htsFile *htf = hts_open("tests/soft.bam", "rb");
     int start = 10080;
@@ -294,7 +294,7 @@ int example() {
     return 0;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
         /*
     htsFile *htf = hts_open("tests/three.bam", "rb");
     int start = 1585270;

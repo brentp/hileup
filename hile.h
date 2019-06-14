@@ -80,4 +80,4 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int posi
 /* free all memory from the given hile struct */
 void hile_destroy(hile *h);
 /* initialize a config struct with sane defaults */
-hile_config_t hile_init_config();
+hile_config_t hile_init_config(void);
