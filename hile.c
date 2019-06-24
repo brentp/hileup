@@ -201,7 +201,7 @@ void hile_destroy(hile *h) {
 }
 
 
-hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg) {
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg) {
   int tid = bam_name2id(hdr, chrom);
   if(tid == -1){
     fprintf(stderr, "[hile] unknown chromosome %s\n", chrom);
