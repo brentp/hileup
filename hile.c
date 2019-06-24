@@ -297,7 +297,7 @@ int example(void) {
     return 0;
 }
 
-int main(int argc, char *argv[]) {
+int not_main(int argc, char *argv[]) {
         /*
     htsFile *htf = hts_open("tests/three.bam", "rb");
     int start = 1585270;
