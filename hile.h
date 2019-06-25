@@ -1,3 +1,6 @@
+#ifndef HILE_H
+#define HILE_H
+
 #include "htslib/vcf.h"
 #include "htslib/sam.h"
 #include "htslib/hts.h"
@@ -5,6 +8,10 @@
 #include "stdio.h"
 #include "string.h"
 #include "stdbool.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * config_t determines which reads and bases are added to the
@@ -81,3 +88,9 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, in
 void hile_destroy(hile *h);
 /* initialize a config struct with sane defaults */
 hile_config_t hile_init_config(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
