@@ -29,8 +29,8 @@ cdef extern from "hile.h" nogil:
         uint32_t pos
         char reference_base
         hile_basestrand_t *bases
-        uint16_t n
-        uint16_t cap
+        uint32_t n
+        uint32_t cap
         uint8_t *bqs
         uint8_t *mqs
         char **read_names

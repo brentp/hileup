@@ -217,12 +217,12 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, in
   hts_itr_t *itr = sam_itr_queryi(idx, tid, position, position + 1);
   if (itr == NULL) {
     fprintf(stderr, "[hileup] unable to access region %s:%d", chrom, position);
-    exit(1);
+    return NULL;
   }
   int slen;
   bam1_t *b = bam_init1();
   hile *h = hile_init();
-  #define is_primary(b) (!(b->core.flag & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)))
+#define is_primary(b) (!(b->core.flag & (BAM_FSECONDARY | BAM_FSUPPLEMENTARY)))
 
   while((slen = sam_itr_next(htf, itr, b)) > 0){
      k = kh_get(strset, seen, bam_get_qname(b));
@@ -297,44 +297,45 @@ int example(void) {
     return 0;
 }
 
-int not_main(int argc, char *argv[]) {
-        /*
-    htsFile *htf = hts_open("tests/three.bam", "rb");
-    int start = 1585270;
+int debug_main(int argc, char *argv[]) {
+    htsFile *htf = hts_open("tests/bug.bam", "rb");
+    int start = 106993876;
     bam_hdr_t *hdr = sam_hdr_read(htf);
-    hts_idx_t *idx = sam_index_load(htf, "tests/three.bam");
+    hts_idx_t *idx = sam_index_load(htf, "tests/bug.bam");
     hile_config_t cfg = hile_init_config();
-    cfg.track_base_qualities = true;
-    cfg.track_mapping_qualities = true;
-    cfg.track_read_names = true;
-    cfg.tags[0] = 'M';
-    cfg.tags[1] = 'D';
-    cfg.tags[2] = 'F';
-    cfg.tags[3] = 'G';
+    cfg.track_base_qualities = false;
+    cfg.track_mapping_qualities = false;
+    //cfg.track_read_names = true;
+    cfg.tags[0] = 'C';
+    cfg.tags[1] = 'B';
 
-    hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
-    fprintf(stderr, "%s:%d ", "1", start);
-    for(int i=0; i < h->n; i++){
-        fprintf(stderr, "%c", (char)h->bases[i].base);
-    }
-    if(cfg.track_mapping_qualities) {
-	    fprintf(stderr, " ");
-	    for(int i=0; i < h->n; i++){
-		fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
-	    }
-    }
-    if(cfg.tags[0] != 0) {
-	    fprintf(stderr, " ");
-	    for(int i=0; i < h->n; i++){
-		fprintf(stderr, "%d:%s ", i, h->tags[i]);
-	    }
-    }
-    fprintf(stderr, "\n");
+    for (int st = start -30; st < start + 30; st++) {
 
-    hile_destroy(h);
+	    hile* h = hileup(htf, hdr, idx, "14", st, &cfg);
+	    fprintf(stderr, "%s:%d ", "14", st);
+	    for(int i=0; i < h->n; i++){
+		fprintf(stderr, "%c", (char)h->bases[i].base);
+	    }
+	    if(cfg.track_mapping_qualities) {
+		    fprintf(stderr, " ");
+		    for(int i=0; i < h->n; i++){
+			fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+		    }
+	    }
+	    /*
+	    if(cfg.tags[0] != 0) {
+		    fprintf(stderr, " ");
+		    for(int i=0; i < h->n; i++){
+			fprintf(stderr, "%d:%s ", i, h->tags[i]);
+		    }
+	    }
+	    */
+	    fprintf(stderr, "\n");
+
+	    hile_destroy(h);
+    }
     bam_hdr_destroy(hdr);
     hts_idx_destroy(idx);
     hts_close(htf);
-    */
     return example();
 }

@@ -117,7 +117,7 @@ def pileup(AlignmentFile bam, str chrom, int position, Config cfg):
 def example():
     cdef AlignmentFile samfile = AlignmentFile("tests/three.bam", "rb")
 
-    h = pileup(samfile, "1", 1585270)
+    h = pileup(samfile, "1", 1585270, Config())
     print(h.bases)
     print(h.read_names)
     print(h.bqs)
