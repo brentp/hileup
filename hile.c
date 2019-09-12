@@ -45,7 +45,9 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
 	}
     }
     if(t == NULL) {
+#ifdef HILE_VERBOSE
         fprintf(stderr, "[hileup] tag %c%c not found\n", tag[0], tag[1]);
+#endif
     }
     if(!added) {
 	    if(append) {
@@ -204,7 +206,9 @@ void hile_destroy(hile *h) {
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg) {
   int tid = bam_name2id(hdr, chrom);
   if(tid == -1){
+#ifdef HILE_VERBOSE
     fprintf(stderr, "[hile] unknown chromosome %s\n", chrom);
+#endif
     return NULL;
   }
 
@@ -216,7 +220,9 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, in
 
   hts_itr_t *itr = sam_itr_queryi(idx, tid, position, position + 1);
   if (itr == NULL) {
+#ifdef HILE_VERBOSE
     fprintf(stderr, "[hileup] unable to access region %s:%d", chrom, position);
+#endif
     return NULL;
   }
   int slen;
@@ -297,7 +303,7 @@ int example(void) {
     return 0;
 }
 
-int debug_main(int argc, char *argv[]) {
+int not_main(int argc, char *argv[]) {
     htsFile *htf = hts_open("tests/bug.bam", "rb");
     int start = 106993876;
     bam_hdr_t *hdr = sam_hdr_read(htf);
