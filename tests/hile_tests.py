@@ -29,6 +29,8 @@ def main(bam, config):
     actg = set("ATGC")
     for pos in range(10000, 200011000):
         h = chileup.pileup(bam, "1", pos, config)
+        if len(h.insertions) > 0:
+            print(h.insertions)
         #print(pos, h.bases, len(h.bqs), len(h.deletions), len(h.insertions))
         if set(h.bases.decode()) - actg:
             print(pos, h.bases, set(h.bases.decode()) - actg)
@@ -46,8 +48,11 @@ if __name__ == "__main__":
 
     pos = 10080
     h = chileup.pileup(bam, "1", pos, config)
+    print(h)
     #print(pos, h.bases)
     test_off_by_one()
+    print("off by one")
     test_insertion()
+    print("insertion")
 
     main(bam, config)

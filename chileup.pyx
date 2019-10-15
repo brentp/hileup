@@ -70,13 +70,15 @@ cdef class HileUp:
 
     @property
     def deletions(self):
+        """return a view of the data about deletions."""
         if self.c.n_deletions == 0: return []
         return np.asarray(<hile_deletion_t[:self.c.n_deletions]>self.c.deletions, dtype=dt)
 
     @property
     def insertions(self):
+        "return the information about the insertions. This is copy of the underlying data."
         if self.c.n_insertions == 0: return []
-        return np.asarray(<hile_insertion_t[:self.c.n_insertions]>self.c.insertions, dtype=dt)
+        return [self.c.insertions[i] for i in range(self.c.n_insertions)]
 
     @property
     def size(self):

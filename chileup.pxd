@@ -17,10 +17,12 @@ cdef extern from "hile.h" nogil:
     ctypedef struct hile_deletion_t:
         uint16_t index
         uint32_t length
+
     ctypedef struct hile_insertion_t:
         uint16_t index
-        # char *sequence
         uint32_t length
+        char *sequence
+
     ctypedef struct hile_basestrand_t:
         uint8_t reverse_strand
         uint8_t base

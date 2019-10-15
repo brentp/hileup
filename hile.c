@@ -108,7 +108,7 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
               h->insertions[h->n_insertions].index = h->n-1;
               h->insertions[h->n_insertions].length = oplen;
               h->insertions[h->n_insertions].sequence = malloc((oplen + 1) * sizeof(char));
-              for(int k=0; k < oplen; k++){
+              for(uint k=0; k < oplen; k++){
                   h->insertions[h->n_insertions].sequence[k] = "=ACMGRSVTWYHKDBN"[bam_seqi(bam_get_seq(b), k + q_off)];
               }
               h->insertions[h->n_insertions].sequence[oplen] = '\0';
@@ -185,7 +185,7 @@ hile *hile_init(void) {
 
 void hile_destroy(hile *h) {
     if(h == NULL) { return; }
-    int i;
+    uint i;
     if(h->tags != NULL) {
         for(i=0; i < h->n; i++) {
             free(h->tags[i]);
@@ -204,8 +204,8 @@ void hile_destroy(hile *h) {
     if(h->insertions != NULL) {
         for(i=0;i<h->n_insertions;i++) {
            free(h->insertions[i].sequence);
-	}
-	free(h->insertions);
+        }
+        free(h->insertions);
     }
     if(h->bases != NULL) { free(h->bases); }
     free(h);
@@ -287,7 +287,7 @@ int example(void) {
 
     hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
     fprintf(stderr, "%s:%d ", "1", start);
-    int i;
+    uint i;
     for(i=0; i < h->n; i++){
         fprintf(stderr, "%c", (char)h->bases[i].base);
     }
@@ -328,15 +328,15 @@ int not_main(int argc, char *argv[]) {
 
 	    hile* h = hileup(htf, hdr, idx, "1", st, &cfg);
 	    fprintf(stderr, "%s:%d ", "1", st);
-	    for(int i=0; i < h->n; i++){
+	    for(uint i=0; i < h->n; i++){
 		fprintf(stderr, "%c", (char)h->bases[i].base);
 	    }
-	    for(int i=0; i < h->n_insertions; i++){
+	    for(uint i=0; i < h->n_insertions; i++){
 		fprintf(stderr, " ins:%s ", h->insertions[i].sequence);
 	    }
 	    if(cfg.track_mapping_qualities) {
 		    fprintf(stderr, " ");
-		    for(int i=0; i < h->n; i++){
+		    for(uint i=0; i < h->n; i++){
 			fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
 		    }
 	    }
