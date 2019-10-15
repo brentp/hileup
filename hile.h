@@ -37,7 +37,7 @@ typedef struct {
  * bases,read_names,etc that this event follows.
  */
 typedef struct {
-  uint16_t index;
+  uint32_t index;
   uint32_t length;
 } hile_deletion_t;
 
@@ -47,7 +47,7 @@ typedef struct {
  * bases,read_names,etc that this event follows.
  */
 typedef struct {
-  uint16_t index;
+  uint32_t index;
   char *sequence;
   uint32_t length;
 } hile_insertion_t;
@@ -75,9 +75,9 @@ typedef struct {
   char **read_names;
   char **tags;
   hile_insertion_t *insertions;
-  uint16_t n_insertions;
+  uint32_t n_insertions;
   hile_deletion_t *deletions;
-  uint16_t n_deletions;
+  uint32_t n_deletions;
 } hile;
 
 

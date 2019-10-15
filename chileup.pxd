@@ -15,11 +15,11 @@ cdef extern from "hile.h" nogil:
         char tags[4];
 
     ctypedef struct hile_deletion_t:
-        uint16_t index
+        uint32_t index
         uint32_t length
 
     ctypedef struct hile_insertion_t:
-        uint16_t index
+        uint32_t index
         uint32_t length
         char *sequence
 
@@ -38,9 +38,9 @@ cdef extern from "hile.h" nogil:
         char **read_names
         char **tags;
         hile_insertion_t *insertions
-        uint16_t n_insertions
+        uint32_t n_insertions
         hile_deletion_t *deletions
-        uint16_t n_deletions
+        uint32_t n_deletions
     void hile_destroy(hile *h)
     hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg)
     hile_config_t hile_init_config()

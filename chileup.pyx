@@ -5,7 +5,7 @@ from pysam.libcalignmentfile cimport AlignmentFile
 from libc.stdlib cimport malloc
 cimport numpy as np
 import numpy as np
-cdef dt = np.dtype([('index', np.uint16, 1), ('len', np.uint32, 1)])
+cdef dt = np.dtype([('index', np.uint32, 1), ('len', np.uint32, 1)])
 
 cdef class HileUp:
     cdef hile *c

@@ -32,17 +32,17 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
             tval = bam_aux2Z(t);
         }
         if(tval != NULL) {
-	    added = true;
-	    if(append) {
-		int oldlen = strlen(h->tags[h->n-1]);
-		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (2 + strlen(tval) + oldlen));
-		h->tags[h->n-1][oldlen] = '/';
-		strcpy(h->tags[h->n-1] + oldlen + 1, tval);
-	    } else {
-		h->tags[h->n-1] = malloc(sizeof(char) * (1 + strlen(tval)));
-		strcpy(h->tags[h->n-1], tval);
-	    }
-	}
+        added = true;
+        if(append) {
+        int oldlen = strlen(h->tags[h->n-1]);
+        h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (2 + strlen(tval) + oldlen));
+        h->tags[h->n-1][oldlen] = '/';
+        strcpy(h->tags[h->n-1] + oldlen + 1, tval);
+        } else {
+        h->tags[h->n-1] = malloc(sizeof(char) * (1 + strlen(tval)));
+        strcpy(h->tags[h->n-1], tval);
+        }
+    }
     }
     if(t == NULL) {
 #ifdef HILE_VERBOSE
@@ -50,14 +50,14 @@ void hile_add_tag(hile *h, bam1_t *b, char tag[2], bool append) {
 #endif
     }
     if(!added) {
-	    if(append) {
-		int oldlen = strlen(h->tags[h->n-1]);
-		h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (3 + oldlen));
-		strcpy(h->tags[h->n-1] + oldlen, "/.");
-	    } else {
-		h->tags[h->n-1] = malloc(sizeof(char) * 2);
-		strcpy(h->tags[h->n-1], ".");
-	    }
+        if(append) {
+        int oldlen = strlen(h->tags[h->n-1]);
+        h->tags[h->n-1] = realloc(h->tags[h->n-1], sizeof(char) * (3 + oldlen));
+        strcpy(h->tags[h->n-1] + oldlen, "/.");
+        } else {
+        h->tags[h->n-1] = malloc(sizeof(char) * 2);
+        strcpy(h->tags[h->n-1], ".");
+        }
     }
 }
 
@@ -292,16 +292,16 @@ int example(void) {
         fprintf(stderr, "%c", (char)h->bases[i].base);
     }
     if(cfg.track_mapping_qualities) {
-	    fprintf(stderr, " ");
-	    for(i=0; i < h->n; i++){
-		fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
-	    }
+        fprintf(stderr, " ");
+        for(i=0; i < h->n; i++){
+        fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+        }
     }
     if(cfg.tags[0] != 0) {
-	    fprintf(stderr, " ");
-	    for(i=0; i < h->n; i++){
-		fprintf(stderr, "%d:%s ", i, h->tags[i]);
-	    }
+        fprintf(stderr, " ");
+        for(i=0; i < h->n; i++){
+        fprintf(stderr, "%d:%s ", i, h->tags[i]);
+        }
     }
     fprintf(stderr, "\n");
 
@@ -326,31 +326,31 @@ int not_main(int argc, char *argv[]) {
 
     for (int st = start - 4; st < start + 4; st++) {
 
-	    hile* h = hileup(htf, hdr, idx, "1", st, &cfg);
-	    fprintf(stderr, "%s:%d ", "1", st);
-	    for(uint i=0; i < h->n; i++){
-		fprintf(stderr, "%c", (char)h->bases[i].base);
-	    }
-	    for(uint i=0; i < h->n_insertions; i++){
-		fprintf(stderr, " ins:%s ", h->insertions[i].sequence);
-	    }
-	    if(cfg.track_mapping_qualities) {
-		    fprintf(stderr, " ");
-		    for(uint i=0; i < h->n; i++){
-			fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
-		    }
-	    }
-	    /*
-	    if(cfg.tags[0] != 0) {
-		    fprintf(stderr, " ");
-		    for(int i=0; i < h->n; i++){
-			fprintf(stderr, "%d:%s ", i, h->tags[i]);
-		    }
-	    }
-	    */
-	    fprintf(stderr, "\n");
+        hile* h = hileup(htf, hdr, idx, "1", st, &cfg);
+        fprintf(stderr, "%s:%d ", "1", st);
+        for(uint i=0; i < h->n; i++){
+        fprintf(stderr, "%c", (char)h->bases[i].base);
+        }
+        for(uint i=0; i < h->n_insertions; i++){
+        fprintf(stderr, " ins:%s ", h->insertions[i].sequence);
+        }
+        if(cfg.track_mapping_qualities) {
+            fprintf(stderr, " ");
+            for(uint i=0; i < h->n; i++){
+            fprintf(stderr, "%c", (char)(h->bqs[i] + 33));
+            }
+        }
+        /*
+        if(cfg.tags[0] != 0) {
+            fprintf(stderr, " ");
+            for(int i=0; i < h->n; i++){
+            fprintf(stderr, "%d:%s ", i, h->tags[i]);
+            }
+        }
+        */
+        fprintf(stderr, "\n");
 
-	    hile_destroy(h);
+        hile_destroy(h);
     }
     bam_hdr_destroy(hdr);
     hts_idx_destroy(idx);
