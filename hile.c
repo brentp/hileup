@@ -91,11 +91,11 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     uint32_t i;
     for(i=0; i < b->core.n_cigar; i++){
         skip_last = false;
-	uint32_t element = cig[i];
-	uint32_t op = element & BAM_CIGAR_MASK;
-	uint32_t oplen = element >> BAM_CIGAR_SHIFT;
-	bool consumes_ref = (bam_cigar_type(op) & 2) != 0;
-	bool consumes_query = (bam_cigar_type(op) & 1) != 0;
+        uint32_t element = cig[i];
+        uint32_t op = element & BAM_CIGAR_MASK;
+        uint32_t oplen = element >> BAM_CIGAR_SHIFT;
+        bool consumes_ref = (bam_cigar_type(op) & 2) != 0;
+        bool consumes_query = (bam_cigar_type(op) & 1) != 0;
         // insertions and deletions get assinged to previous entry.
         if(r_off == position + 1 && !skip_last) {
             if(op == BAM_CDEL) {
@@ -107,31 +107,35 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
               h->insertions = realloc(h->insertions, sizeof(hile_insertion_t) * (h->n_insertions+1));
               h->insertions[h->n_insertions].index = h->n-1;
               h->insertions[h->n_insertions].length = oplen;
+              h->insertions[h->n_insertions].sequence = malloc((oplen + 1) * sizeof(char));
+              for(int k=0; k < oplen; k++){
+                  h->insertions[h->n_insertions].sequence[k] = "=ACMGRSVTWYHKDBN"[bam_seqi(bam_get_seq(b), k + q_off)];
+              }
+              h->insertions[h->n_insertions].sequence[oplen] = '\0';
               h->n_insertions++;
             }
         }
 
-	if(r_off > position){ break; }
-	if(consumes_query) { q_off += oplen; }
-	if(consumes_ref) { r_off += oplen; }
+        if(r_off > position){ break; }
+        if(consumes_query) { q_off += oplen; }
+        if(consumes_ref) { r_off += oplen; }
         if(r_off < position){ continue; }
 
+        if(!(consumes_query && consumes_ref)){ continue; }
 
-	if(!(consumes_query && consumes_ref)){ continue; }
-
-	int over = r_off - position;
-	if(over > q_off) { break;}
-	if(over < 0) { continue; }
-	uint8_t bq = 0;
-	if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {
-	    bq = bam_get_qual(b)[q_off - over];
-	    if (bq < cfg->min_base_quality) {
-	       skip_last = true;
-	       continue;
-	    }
-	}
-	h->n++;
-	hile_realloc(h, cfg);
+        int over = r_off - position;
+        if(over > q_off) { break;}
+        if(over < 0) { continue; }
+        uint8_t bq = 0;
+        if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {
+            bq = bam_get_qual(b)[q_off - over];
+            if (bq < cfg->min_base_quality) {
+               skip_last = true;
+               continue;
+            }
+        }
+        h->n++;
+        hile_realloc(h, cfg);
         if(cfg->track_base_qualities) {
           h->bqs[h->n-1] = bq;
         }
@@ -150,14 +154,14 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
         if(cfg->track_mapping_qualities) {
             h->mqs[h->n - 1] = b->core.qual;
         }
-	if(cfg->tags[0] != 0) {
-	   char tag[2] = {cfg->tags[0], cfg->tags[1]};
-           hile_add_tag(h, b, tag, false);
-	   if(cfg->tags[2] != 0) {
-	     tag[0] = cfg->tags[2], tag[1] = cfg->tags[3];
-             hile_add_tag(h, b, tag, true);
-	   }
-	}
+        if(cfg->tags[0] != 0) {
+            char tag[2] = {cfg->tags[0], cfg->tags[1]};
+            hile_add_tag(h, b, tag, false);
+            if(cfg->tags[2] != 0) {
+                tag[0] = cfg->tags[2], tag[1] = cfg->tags[3];
+                hile_add_tag(h, b, tag, true);
+            }
+        }
     }
 }
 
@@ -197,7 +201,12 @@ void hile_destroy(hile *h) {
     if(h->mqs != NULL) { free(h->mqs); }
     if(h->bqs != NULL) { free(h->bqs); }
     if(h->deletions != NULL) { free(h->deletions); }
-    if(h->insertions != NULL) { free(h->insertions); }
+    if(h->insertions != NULL) {
+        for(i=0;i<h->n_insertions;i++) {
+           free(h->insertions[i].sequence);
+	}
+	free(h->insertions);
+    }
     if(h->bases != NULL) { free(h->bases); }
     free(h);
 }
@@ -304,10 +313,10 @@ int example(void) {
 }
 
 int not_main(int argc, char *argv[]) {
-    htsFile *htf = hts_open("tests/bug.bam", "rb");
-    int start = 106993876;
+    htsFile *htf = hts_open("tests/ins.bam", "rb");
+    int start = 28588;
     bam_hdr_t *hdr = sam_hdr_read(htf);
-    hts_idx_t *idx = sam_index_load(htf, "tests/bug.bam");
+    hts_idx_t *idx = sam_index_load(htf, "tests/ins.bam");
     hile_config_t cfg = hile_init_config();
     cfg.track_base_qualities = false;
     cfg.track_mapping_qualities = false;
@@ -315,12 +324,15 @@ int not_main(int argc, char *argv[]) {
     cfg.tags[0] = 'C';
     cfg.tags[1] = 'B';
 
-    for (int st = start -30; st < start + 30; st++) {
+    for (int st = start - 4; st < start + 4; st++) {
 
-	    hile* h = hileup(htf, hdr, idx, "14", st, &cfg);
-	    fprintf(stderr, "%s:%d ", "14", st);
+	    hile* h = hileup(htf, hdr, idx, "1", st, &cfg);
+	    fprintf(stderr, "%s:%d ", "1", st);
 	    for(int i=0; i < h->n; i++){
 		fprintf(stderr, "%c", (char)h->bases[i].base);
+	    }
+	    for(int i=0; i < h->n_insertions; i++){
+		fprintf(stderr, " ins:%s ", h->insertions[i].sequence);
 	    }
 	    if(cfg.track_mapping_qualities) {
 		    fprintf(stderr, " ");

@@ -48,7 +48,7 @@ typedef struct {
  */
 typedef struct {
   uint16_t index;
-  //char *sequence;
+  char *sequence;
   uint32_t length;
 } hile_insertion_t;
 
@@ -87,7 +87,7 @@ typedef struct {
  * using `hile_destroy`
  */
 hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg);
-/* free all memory from the given hile struct */
+/* free all memory from the given hile struct, including the insertion sequences */
 void hile_destroy(hile *h);
 /* initialize a config struct with sane defaults */
 hile_config_t hile_init_config(void);
