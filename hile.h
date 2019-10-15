@@ -25,6 +25,9 @@ typedef struct {
   bool track_read_names;
   bool track_base_qualities;
   bool track_mapping_qualities;
+  // BAQ https://doi.org/10.1093/bioinformatics/btr076
+  // uses sam_prob_realn in htslib
+  //bool adjust_base_quality;
   char tags[4]; // track up to 2 tags.
 } hile_config_t;
 

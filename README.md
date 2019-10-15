@@ -19,6 +19,7 @@ import chileup
 
 bam = pysam.AlignmentFile("tests/three.bam", "rb")
 
+# setting track_??? to False will speed the hileup as less copying and and data access is required.
 config = chileup.Config(tags=[], track_read_names=True,
         track_base_qualities=True, track_mapping_qualities=True,
         exclude_flags=pysam.FQCFAIL | pysam.FSECONDARY | pysam.FSUPPLEMENTARY | pysam.FDUP,
