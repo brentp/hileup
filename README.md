@@ -33,7 +33,12 @@ print(h.read_names) # [b'A00227:74:HCWC7DSXX:1:1269:13449:13855', b'A00227:74:HC
 print(h.bqs) # [37, 37]  numpy array that is a view into underlying data.
 print(h.mqs) # [60, 60] numpy view.
 print(h.deletions) # [(0, 8) (1, 8)] numpy view
-print(h.insertions) # numpy view
+
+# the insertions and deletions have a `.index` property that can be used
+# to access the read-names, tags, etc that are associated with the indel event.
+for ins in h.insertions: # copy of the data.
+   print(h.read_names[ins.index], h.tags[ins.index], ins.sequence, ins.len)
+
 print(h.tags) # copy.
 ```
 
