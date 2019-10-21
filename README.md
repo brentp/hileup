@@ -47,7 +47,7 @@ To install `python setup.py install`
 
 Because it minimizes operations in python, it is quite fast (for python).
 
-**NOTE** that currently the strand information is unavailable from python.
+**NOTE** that strand information is encoded by case for python (lower case == reverse strand).
 
 
 ## C
