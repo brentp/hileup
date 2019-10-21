@@ -82,6 +82,7 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
     if((cfg->exclude_flags & b->core.flag) != 0) { return; }
+    h->pos = (uint32_t)position;
 
     int r_off = b->core.pos;
     int q_off = 0;
@@ -98,14 +99,14 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
         bool consumes_query = (bam_cigar_type(op) & 1) != 0;
         // insertions and deletions get assinged to previous entry.
         if(r_off == position + 1 && !skip_last) {
-            if(op == BAM_CDEL) {
+            if(op == BAM_CDEL && h->n > 0) {
               h->deletions = realloc(h->deletions, sizeof(hile_deletion_t) * (h->n_deletions+1));
               h->deletions[h->n_deletions].index = h->n - 1;
               h->deletions[h->n_deletions].length = oplen;
               h->n_deletions++;
-            } else if (op == BAM_CINS) {
+            } else if (op == BAM_CINS && h->n > 0) {
               h->insertions = realloc(h->insertions, sizeof(hile_insertion_t) * (h->n_insertions+1));
-              h->insertions[h->n_insertions].index = h->n-1;
+              h->insertions[h->n_insertions].index = h->n - 1;
               h->insertions[h->n_insertions].length = oplen;
               h->insertions[h->n_insertions].sequence = malloc((oplen + 1) * sizeof(char));
               for(uint k=0; k < oplen; k++){

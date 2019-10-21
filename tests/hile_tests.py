@@ -14,26 +14,26 @@ def test_off_by_one():
     bam = pysam.AlignmentFile("tests/soft.bam", "rb")
     pos = 10080
     h = chileup.pileup(bam, "1", pos, config)
-    assert h.bases == b"", h.bases
+    assert h.bases == "", h.bases
 
 def test_insertion():
     bam = pysam.AlignmentFile("tests/three.bam", "rb")
     pos = 1585270
     h = chileup.pileup(bam, "1", pos, config)
-    assert h.bases == b'TT', h.bases
+    assert h.bases == 'tt', h.bases
     assert len(h.deletions) == 2
 
 
 def main(bam, config):
 
-    actg = set("ATGC")
+    actg = set("ATGCatgc")
     for pos in range(10000, 200011000):
         h = chileup.pileup(bam, "1", pos, config)
         if len(h.insertions) > 0:
-            print(h.insertions)
+            print(pos, len(h.bases), h.insertions)
         #print(pos, h.bases, len(h.bqs), len(h.deletions), len(h.insertions))
-        if set(h.bases.decode()) - actg:
-            print(pos, h.bases, set(h.bases.decode()) - actg)
+        if set(h.bases) - actg:
+            print(pos, h.bases, set(h.bases) - actg)
             break
         h.rbp(h)
 

@@ -3,9 +3,15 @@
 
 from pysam.libcalignmentfile cimport AlignmentFile
 from libc.stdlib cimport malloc
+from collections import Counter
 cimport numpy as np
 import numpy as np
 cdef dt = np.dtype([('index', np.uint32, 1), ('len', np.uint32, 1)])
+
+
+cdef inline dict decode_insertion(dict ins):
+    ins["sequence"] = ins["sequence"].decode()
+    return ins
 
 cdef class HileUp:
     cdef hile *c
@@ -19,12 +25,9 @@ cdef class HileUp:
         cdef int i
         cdef char* s = <char *>malloc((self.c.n+1) * sizeof(char))
         for i in range(self.c.n):
-            #if show_strand and self.c.bases[i].reverse_strand == 1:
-            #  s[i] = self.c.bases[i].base + 32
-            #else:
-            s[i] = self.c.bases[i].base
+            s[i] = self.c.bases[i].base + (self.c.bases[i].reverse_strand * 32)
         s[self.c.n] = 0
-        pys = s[:self.c.n]
+        pys = s[:self.c.n].decode()
         free(s)
         return pys
 
@@ -78,7 +81,7 @@ cdef class HileUp:
     def insertions(self):
         "return the information about the insertions. This is copy of the underlying data."
         if self.c.n_insertions == 0: return []
-        return [self.c.insertions[i] for i in range(self.c.n_insertions)]
+        return [decode_insertion(self.c.insertions[i]) for i in range(self.c.n_insertions)]
 
     @property
     def size(self):
@@ -86,6 +89,15 @@ cdef class HileUp:
 
     def __dealloc__(self):
         hile_destroy(self.c)
+
+    @property
+    def pos(self):
+        return self.c.pos
+
+    def __repr__(self):
+        return """HileUp("{position}", counts:{vals})""".format(
+                position=self.c.pos, ref=self.c.reference_base,
+                vals=dict(Counter(self.bases)))
 
 cdef class Config:
     cdef hile_config_t c
