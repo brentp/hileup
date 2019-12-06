@@ -98,14 +98,14 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
         continue
 
       if cfg.MinBaseQuality > 0'u8 or cfg.TrackBaseQualities:
-        var bq = aln.base_quality_at(q_off - over)
+        var bq = aln.base_quality_at(int(q_off - over))
         if bq < cfg.MinBaseQuality:
           skip_last = true
           continue
         if cfg.TrackBaseQualities:
           result.bqs.add(bq)
 
-      var c = aln.base_at(q_off - over)
+      var c = aln.base_at(int(q_off - over))
       var bs = basestrand(base: c.uint8)
       if aln.flag.reverse:
         bs.reverse_strand = 1
