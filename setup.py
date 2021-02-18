@@ -7,13 +7,15 @@ import numpy as np
 import sys
 
 from Cython.Compiler.Options import get_directive_defaults
+version = "0.0.1"
 
 #directive_defaults = get_directive_defaults()
 #directive_defaults['linetrace'] = True
 #directive_defaults['binding'] = True
 
-setup(
+setup(name="chileup",
       cmdclass={'build_ext': Cython.Build.build_ext},
+      version=version,
       ext_modules = cythonize([Extension("chileup",
                                sources=["hile.c", "chileup.pyx"],
                                depends=["hile.h", "khash.h"],
