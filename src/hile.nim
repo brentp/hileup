@@ -106,9 +106,7 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
           result.bqs.add(bq)
 
       var c = aln.base_at(int(q_off - over))
-      var bs = basestrand(base: c.uint8)
-      if aln.flag.reverse:
-        bs.reverse_strand = 1
+      let bs = basestrand(base: c.uint8, reverse_strand:aln.flag.reverse.uint8)
       result.bases.add(bs)
 
       if cfg.TrackReadNames:
