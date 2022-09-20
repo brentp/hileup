@@ -1,5 +1,6 @@
 import hts
 import strutils
+import strformat
 import sets
 
 type Config* = object
@@ -58,6 +59,7 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
   if reference != nil:
     result.reference_base = reference.get(chrom, position, position + 1)[0]
   var s = ""
+  var n = 0
   for aln in bam.query(chrom, position, position + 1):
     if aln.mapping_quality < cfg.MinMappingQuality: continue
     if cfg.IncludeFlags != 0 and (cfg.IncludeFlags and aln.flag.uint16) != cfg.IncludeFlags: continue
@@ -70,9 +72,14 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
     for op in aln.cigar:
       let cons = op.consumes
       let c_stop = c_start + (cons.reference.uint32 * op.len.uint32)
-      q_off += (op.len + cons.query.int).uint32
+      q_off += (op.len * cons.query.int).uint32
+      if c_stop <= position.uint32:
+        c_start = c_stop
+        continue
 
-      var over = c_start - position.uint32
+      doAssert c_stop >= position.uint32
+      var over = c_stop - position.uint32
+      #echo &"position:{position} c_start:{c_start} c_stop:{c_stop} q_off:{q_off}, over:{over}"
       if over > q_off: break
 
       if c_stop == position.uint32:
@@ -82,13 +89,12 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
           discard aln.sequence(s)
           result.ins.add(insertion(index: result.bases.high.uint16, sequence: s[q_off..<q_off + op.len.uint32]))
 
-      if c_stop >= position.uint32: continue
       # now cigar contains position.
       #
       if cfg.MinBaseQuality > 0'u8 or cfg.TrackBaseQualities:
         var bq = aln.base_quality_at(int(q_off - over))
         if bq < cfg.MinBaseQuality:
-          continue
+          break
         if cfg.TrackBaseQualities:
           result.bqs.add(bq)
 
@@ -102,17 +108,13 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
       if cfg.TrackMappingQualities:
         result.mqs.add(aln.mapping_quality)
       
-      c_start = c_stop
-
-      #if not (cons.query and cons.reference):
-      #  continue
-
       if aln.tid == aln.mate_tid and overlap_lookup.len > 0 and not overlap_lookup.missingOrExcl(aln.qname):
-        continue
+        break
 
-      if aln.flag.pair and (not aln.primary) or aln.stop <= aln.mate_pos or aln.mate_pos > position or aln.tid != aln.mate_tid or aln.start > aln.mate_pos:
-        continue
-      overlap_lookup.incl(aln.qname)
+      if aln.primary and aln.flag.pair and aln.start <= aln.mate_pos and aln.tid == aln.mate_tid:
+        overlap_lookup.incl(aln.qname)
+
+      break
 
 proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config): Hile =
     hileup(bam, chrom, position, reference, cfg, result)
@@ -135,10 +137,8 @@ when isMainModule:
   cfg.TrackReadNames = true
   #for i in 1584850..1586144:
   #for i in 1585268..1585280:
-  # samtools mpileup -B -q 10 -Q 10 -r 1:20101-20101 --reference /data/human/g1k_v37_decoy.fa /data/human/hg002.cram
-  for i in 20100..20100:
+  # samtools mpileup -B -q 10 -Q 10 -r chr1:200101-200111 --reference $ref38 $bam --output-MQ
+  for i in 200100..200110:
     echo i
-    var h = b.hileup("1", i, fai, cfg)
-    echo h
-    if h.bases.len == 0: continue
-    echo h.pos, " ", h.bases.len
+    var h = b.hileup("chr1", i, fai, cfg)
+    echo h, h.bases.len
