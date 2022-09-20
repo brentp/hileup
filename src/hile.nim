@@ -64,46 +64,34 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
     if cfg.ExcludeFlags != 0 and (cfg.ExcludeFlags and aln.flag.uint16) != 0: continue
 
     var
-      r_off = aln.start
-      q_off = 0
-      skip_last = false # don't append INS if preceding base was skipped.
+      c_start = aln.start.uint32
+      q_off = 0'u32
 
     for op in aln.cigar:
-      if r_off == position + 1 and not skip_last:
+      let cons = op.consumes
+      let c_stop = c_start + (cons.reference.uint32 * op.len.uint32)
+      q_off += (op.len + cons.query.int).uint32
+
+      var over = c_start - position.uint32
+      if over > q_off: break
+
+      if c_stop == position.uint32:
         if op.op == CigarOp.deletion:
           result.del.add(deletion(index: result.bases.high.uint16, len: op.len.uint16))
         elif op.op == CigarOp.insert:
           discard aln.sequence(s)
-          result.ins.add(insertion(index: result.bases.high.uint16, sequence: s[q_off..<q_off + op.len]))
+          result.ins.add(insertion(index: result.bases.high.uint16, sequence: s[q_off..<q_off + op.len.uint32]))
 
-      if r_off > position: break
-      skip_last = false
-
-      let cons = op.consumes
-      if cons.query:
-        q_off += op.len
-      if cons.reference:
-        r_off += op.len
-
-      if r_off < position: continue
-
-      if not (cons.query and cons.reference):
-        continue
-
-      var over = r_off - position
-      if over > q_off: break
-      if over < 0: continue
-
-      if aln.tid == aln.mate_tid and overlap_lookup.len > 0 and not overlap_lookup.missingOrExcl(aln.qname):
-        continue
-
+      if c_stop >= position.uint32: continue
+      # now cigar contains position.
+      #
       if cfg.MinBaseQuality > 0'u8 or cfg.TrackBaseQualities:
         var bq = aln.base_quality_at(int(q_off - over))
         if bq < cfg.MinBaseQuality:
-          skip_last = true
           continue
         if cfg.TrackBaseQualities:
           result.bqs.add(bq)
+
 
       var c = aln.base_at(int(q_off - over))
       let bs = basestrand(base: c.uint8, reverse_strand:aln.flag.reverse.uint8)
@@ -113,8 +101,16 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
         result.read_names.add(aln.qname)
       if cfg.TrackMappingQualities:
         result.mqs.add(aln.mapping_quality)
+      
+      c_start = c_stop
 
-      if not aln.primary or aln.stop <= aln.mate_pos or aln.mate_pos > position or aln.tid != aln.mate_tid or aln.start > aln.mate_pos:
+      #if not (cons.query and cons.reference):
+      #  continue
+
+      if aln.tid == aln.mate_tid and overlap_lookup.len > 0 and not overlap_lookup.missingOrExcl(aln.qname):
+        continue
+
+      if aln.flag.pair and (not aln.primary) or aln.stop <= aln.mate_pos or aln.mate_pos > position or aln.tid != aln.mate_tid or aln.start > aln.mate_pos:
         continue
       overlap_lookup.incl(aln.qname)
 
