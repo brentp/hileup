@@ -3,6 +3,8 @@
 
 KHASH_SET_INIT_STR(strset)
 
+extern char* strdup(const char*);
+
 static inline void hile_realloc(hile *h, hile_config_t *cfg) {
     if(h->n < h->cap) { return; }
     h->cap = (h->cap == 0)? 2: (2 * h->cap);
