@@ -23,6 +23,7 @@ typedef struct {
   uint16_t exclude_flags;
   uint16_t include_flags;
   bool track_read_names;
+  bool track_reads;
   bool track_base_qualities;
   bool track_mapping_qualities;
   // BAQ https://doi.org/10.1093/bioinformatics/btr076
@@ -73,13 +74,13 @@ typedef struct {
   uint8_t *bqs;
   uint8_t *mqs;
   char **read_names;
+  bam1_t **reads;
   char **tags;
   hile_insertion_t *insertions;
   uint32_t n_insertions;
   hile_deletion_t *deletions;
   uint32_t n_deletions;
 } hile;
-
 
 /*
  * create a hile for the given genomic position and config
@@ -91,6 +92,10 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, in
 void hile_destroy(hile *h);
 /* initialize a config struct with sane defaults */
 hile_config_t hile_init_config(void);
+
+
+/* get the qpos (stored in the id field); */
+int qpos(bam1_t *b);
 
 #ifdef __cplusplus
 }

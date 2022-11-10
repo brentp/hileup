@@ -10,6 +10,7 @@ cdef extern from "hile.h" nogil:
         uint16_t exclude_flags
         uint16_t include_flags
         bool track_read_names
+        bool track_reads
         bool track_base_qualities
         bool track_mapping_qualities
         char tags[4];
@@ -36,6 +37,7 @@ cdef extern from "hile.h" nogil:
         uint8_t *bqs
         uint8_t *mqs
         char **read_names
+        bam1_t **reads;
         char **tags;
         hile_insertion_t *insertions
         uint32_t n_insertions
@@ -44,3 +46,5 @@ cdef extern from "hile.h" nogil:
     void hile_destroy(hile *h)
     hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg)
     hile_config_t hile_init_config()
+
+    int qpos(bam1_t *b)

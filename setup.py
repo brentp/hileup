@@ -7,7 +7,7 @@ import numpy as np
 import sys
 
 from Cython.Compiler.Options import get_directive_defaults
-version = "0.0.1"
+version = "0.0.2"
 
 #directive_defaults = get_directive_defaults()
 #directive_defaults['linetrace'] = True

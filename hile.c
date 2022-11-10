@@ -18,6 +18,9 @@ static inline void hile_realloc(hile *h, hile_config_t *cfg) {
     if(cfg->track_read_names) {
         h->read_names = realloc(h->read_names, sizeof(char *) * (h->cap));
     }
+	if(cfg->track_reads) {
+        h->reads = realloc(h->reads, sizeof(bam1_t *) * (h->cap));
+	}
     if(cfg->tags[0] != 0) {
         h->tags = realloc(h->tags, sizeof(char *) * (h->cap));
     }
@@ -68,6 +71,7 @@ hile_config_t hile_init_config(void) {
     c.min_mapping_quality = 10;
     c.min_base_quality = 10;
     c.track_read_names = false;
+	c.track_reads = false;
     c.track_base_qualities = false;
     c.track_mapping_qualities = false;
     c.include_flags = 0;
@@ -154,6 +158,11 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
             h->read_names[h->n-1] = malloc(sizeof(char) * (b->core.l_qname));
             strncpy(h->read_names[h->n-1], bam_get_qname(b), sizeof(char) * (b->core.l_qname));
         }
+		if(cfg->track_reads) {
+			h->reads[h->n - 1] = bam_dup1(b);
+			// \.id tracks q_off;
+			h->reads[h->n - 1]->id = (uint32_t)i;
+		}
         if(cfg->track_mapping_qualities) {
             h->mqs[h->n - 1] = b->core.qual;
         }
@@ -168,15 +177,21 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
     }
 }
 
+int qpos(bam1_t *b) {
+	return (int)b->id;
+}
+
 hile *hile_init(void) {
   hile *h = malloc(sizeof(hile));
   h->read_names = NULL;
+  h->reads = NULL;
   h->bqs = NULL;
   h->tags = NULL;
   h->mqs = NULL;
   h->deletions = NULL;
   h->n_deletions = 0;
   h->insertions = NULL;
+  h->reads = NULL;
   h->n_insertions = 0;
   h->bases = NULL;
   h->pos = 0;
@@ -201,6 +216,13 @@ void hile_destroy(hile *h) {
         }
         free(h->read_names);
     }
+    if(h->reads != NULL) {
+        for(i=0; i < h->n; i++) {
+			bam_destroy1(h->reads[i]);
+        }
+        free(h->reads);
+    }
+
     if(h->mqs != NULL) { free(h->mqs); }
     if(h->bqs != NULL) { free(h->bqs); }
     if(h->deletions != NULL) { free(h->deletions); }
@@ -285,6 +307,7 @@ int example(void) {
     cfg.track_base_qualities = true;
     cfg.track_mapping_qualities = true;
     cfg.track_read_names = true;
+    cfg.track_reads = true;
     cfg.min_base_quality = 10;
     cfg.min_mapping_quality = 10;
 
@@ -323,7 +346,7 @@ int not_main(int argc, char *argv[]) {
     hile_config_t cfg = hile_init_config();
     cfg.track_base_qualities = false;
     cfg.track_mapping_qualities = false;
-    //cfg.track_read_names = true;
+    cfg.track_reads = true;
     cfg.tags[0] = 'C';
     cfg.tags[1] = 'B';
 

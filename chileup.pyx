@@ -1,7 +1,8 @@
 # distutils: sources = hile.c
 # distutils: include_dirs = .
 
-from pysam.libcalignmentfile cimport AlignmentFile
+from pysam.libcalignmentfile cimport AlignmentFile, AlignmentHeader
+from pysam.libcalignedsegment cimport AlignedSegment
 from libc.stdlib cimport malloc
 from collections import Counter
 cimport numpy as np
@@ -71,6 +72,18 @@ cdef class HileUp:
             result.append(self.c.read_names[i][:])
         return result
 
+    def reads(self, AlignmentHeader hdr):
+        if self.c.reads == NULL: return []
+        cdef int i
+        result = []
+        cdef AlignedSegment dest
+        for i in range(0, self.c.n):
+            dest = AlignedSegment.__new__(AlignedSegment)
+            dest._delegate = bam_dup1(self.c.reads[i])
+            dest.header = hdr
+            result.append(dest)
+        return result
+
     @property
     def deletions(self):
         """return a view of the data about deletions."""
@@ -99,10 +112,14 @@ cdef class HileUp:
                 position=self.c.pos, ref=self.c.reference_base,
                 vals=dict(Counter(self.bases)))
 
+def query_pos(AlignedSegment b):
+    return qpos(b._delegate)
+
 cdef class Config:
     cdef hile_config_t c
 
     def __init__(self, tags=(), track_read_names=True,
+            track_reads = False,
             track_base_qualities=False, track_mapping_qualities=False,
             min_base_quality=10, min_mapping_quality=10, include_flags=0,
             exclude_flags=1796):
@@ -110,6 +127,8 @@ cdef class Config:
         self.c.track_mapping_qualities = track_mapping_qualities
         self.c.track_base_qualities = track_base_qualities
         self.c.track_read_names = track_read_names
+        self.c.track_reads = track_reads
+        print("in init:", track_reads)
         self.c.min_base_quality = min_base_quality
         self.c.min_mapping_quality = min_mapping_quality
         self.c.include_flags = include_flags
