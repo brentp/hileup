@@ -84,7 +84,7 @@ hile_config_t hile_init_config(void) {
 }
 
 
-void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
+void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg, char ignore_base) {
     if(b->core.qual < cfg->min_mapping_quality){ return; }
     if((cfg->include_flags != 0) && ((cfg->include_flags & b->core.flag) != cfg->include_flags)) { return; }
     if((cfg->exclude_flags & b->core.flag) != 0) { return; }
@@ -133,6 +133,7 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
         int over = r_off - position;
         if(over > q_off) { break;}
         if(over < 0) { continue; }
+
         uint8_t bq = 0;
         if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {
             bq = bam_get_qual(b)[q_off - over];
@@ -141,18 +142,22 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg) {
                continue;
             }
         }
-        h->n++;
-        hile_realloc(h, cfg);
-        if(cfg->track_base_qualities) {
-          h->bqs[h->n-1] = bq;
-        }
 
         uint8_t *seq = bam_get_seq(b);
         int i = q_off - over;
         hile_basestrand_t bs;
         bs.base = "=ACMGRSVTWYHKDBN"[bam_seqi(seq, i)];
+        if (bs.base == ignore_base) { continue; }
+        // base base-quality and ignore_base so we allocated.
+        h->n++;
+        hile_realloc(h, cfg);
+
         bs.reverse_strand = (b->core.flag & BAM_FREVERSE) ? 1: 0;
         h->bases[h->n-1] = bs;
+
+        if(cfg->track_base_qualities) {
+          h->bqs[h->n-1] = bq;
+        }
 
         if(cfg->track_read_names) {
             h->read_names[h->n-1] = malloc(sizeof(char) * (b->core.l_qname));
@@ -237,7 +242,7 @@ void hile_destroy(hile *h) {
 }
 
 
-hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg) {
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg, char ignore_base) {
   int tid = bam_name2id(hdr, chrom);
   if(tid == -1){
 #ifdef HILE_VERBOSE
@@ -271,7 +276,7 @@ hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, in
         kh_del(strset, seen, k);
         continue;
      }
-     fill(h, b, position, cfg);
+     fill(h, b, position, cfg, ignore_base);
      if(!is_primary(b) || bam_endpos(b) <= b->core.mpos || b->core.mpos > position || b->core.tid != b->core.mtid || b->core.pos > b->core.mpos){
        continue;
      }
@@ -311,7 +316,7 @@ int example(void) {
     cfg.min_base_quality = 10;
     cfg.min_mapping_quality = 10;
 
-    hile* h = hileup(htf, hdr, idx, "1", start, &cfg);
+    hile* h = hileup(htf, hdr, idx, "1", start, &cfg, 'Z');
     fprintf(stderr, "%s:%d ", "1", start);
     uint32_t i;
     for(i=0; i < h->n; i++){
@@ -338,7 +343,7 @@ int example(void) {
     return 0;
 }
 
-int not_main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     htsFile *htf = hts_open("tests/ins.bam", "rb");
     int start = 28588;
     bam_hdr_t *hdr = sam_hdr_read(htf);
@@ -352,7 +357,7 @@ int not_main(int argc, char *argv[]) {
 
     for (int st = start - 4; st < start + 4; st++) {
 
-        hile* h = hileup(htf, hdr, idx, "1", st, &cfg);
+        hile* h = hileup(htf, hdr, idx, "1", st, &cfg, 'Z');
         fprintf(stderr, "%s:%d ", "1", st);
         for(uint32_t i=0; i < h->n; i++){
         fprintf(stderr, "%c", (char)h->bases[i].base);

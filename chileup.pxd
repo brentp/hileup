@@ -44,7 +44,7 @@ cdef extern from "hile.h" nogil:
         hile_deletion_t *deletions
         uint32_t n_deletions
     void hile_destroy(hile *h)
-    hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg)
+    hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, char *chrom, int position, hile_config_t *cfg, char ignore_base)
     hile_config_t hile_init_config()
 
     int qpos(bam1_t *b)

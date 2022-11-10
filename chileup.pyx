@@ -128,7 +128,6 @@ cdef class Config:
         self.c.track_base_qualities = track_base_qualities
         self.c.track_read_names = track_read_names
         self.c.track_reads = track_reads
-        print("in init:", track_reads)
         self.c.min_base_quality = min_base_quality
         self.c.min_mapping_quality = min_mapping_quality
         self.c.include_flags = include_flags
@@ -141,10 +140,11 @@ cdef class Config:
             self.c.tags[2*i+1] = ord(t[1])
 
 
-def pileup(AlignmentFile bam, str chrom, int position, Config cfg):
+def pileup(AlignmentFile bam, str chrom, int position, Config cfg, ignore_base='@'):
     cdef HileUp hile = HileUp()
+    cdef char ib = ord(ignore_base[0])
     hile.c = hileup(bam.htsfile, bam.header.ptr, bam.index, chrom.encode(),
-            position, &cfg.c)
+            position, &cfg.c, ib)
     return hile
 
 def example():

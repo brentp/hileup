@@ -87,7 +87,7 @@ typedef struct {
  * the user is responsible for freeing the returned hile
  * using `hile_destroy`
  */
-hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg);
+hile *hileup(htsFile *htf, bam_hdr_t *hdr, hts_idx_t *idx, const char *chrom, int position, hile_config_t *cfg, char ignore_base);
 /* free all memory from the given hile struct, including the insertion sequences */
 void hile_destroy(hile *h);
 /* initialize a config struct with sane defaults */
