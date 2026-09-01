@@ -1,5 +1,5 @@
 # Package
-version       = "0.01"
+version       = "0.1.0"
 author        = "Brent Pedersen"
 description   = "fast pileup"
 license       = "MIT"
