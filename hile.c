@@ -132,7 +132,7 @@ void fill(hile *h, bam1_t *b, int position, hile_config_t *cfg, char ignore_base
 
         int over = r_off - position;
         if(over > q_off) { break;}
-        if(over < 0) { continue; }
+        if(over <= 0) { continue; }
 
         uint8_t bq = 0;
         if(cfg->min_base_quality > 0 || cfg->track_base_qualities) {

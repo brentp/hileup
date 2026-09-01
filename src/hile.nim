@@ -92,7 +92,7 @@ proc hileup*(bam:Bam, chrom: string, position:int, reference: Fai, cfg:Config, r
 
       var over = r_off - position
       if over > q_off: break
-      if over < 0: continue
+      if over <= 0: continue
 
       if aln.tid == aln.mate_tid and overlap_lookup.len > 0 and not overlap_lookup.missingOrExcl(aln.qname):
         continue

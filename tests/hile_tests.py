@@ -11,6 +11,11 @@ config = chileup.Config(tags=[], track_read_names=True,
             exclude_flags=pysam.FQCFAIL | pysam.FSECONDARY | pysam.FSUPPLEMENTARY | pysam.FDUP,
             min_base_quality=10, min_mapping_quality=10)
 
+def test_cigar_boundary_no_double_count():
+    bam = pysam.AlignmentFile("tests/eqx.bam", "rb")
+    h = chileup.pileup(bam, "chr1", 100, config)
+    assert sorted(h.bases) == list("AAAGGG"), h.bases
+
 def test_off_by_one():
     bam = pysam.AlignmentFile("tests/soft.bam", "rb")
     pos = 10080
@@ -59,6 +64,8 @@ if __name__ == "__main__":
     h = chileup.pileup(bam, "1", pos, config)
     print(h)
     #print(pos, h.bases)
+    test_cigar_boundary_no_double_count()
+    print("double count")
     test_off_by_one()
     print("off by one")
     test_insertion()
